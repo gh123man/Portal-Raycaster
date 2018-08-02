@@ -80,8 +80,9 @@ constructor() : JFrame(), Runnable, KeyListener {
         var start: Long
         var diff: Long
         var sleepTime: Long
-        var frameTime = 1.0
+        var framePerTick = 1000 / 60
         var tick = 0
+
         while (running) {
             start = System.nanoTime()
 
@@ -91,19 +92,19 @@ constructor() : JFrame(), Runnable, KeyListener {
 
             drawFrame()
 
-            diff = System.nanoTime() - start
-            sleepTime = 30 - diff / 100000 // FIX
+            diff = (System.nanoTime() - start) / 1_000_000
+            sleepTime = framePerTick - diff
             if (sleepTime < 0) {
                 sleepTime = 0
             }
 
+            //println("sleep: $sleepTime diff: $diff fpt: $framePerTick")
+
+            fps = 1000 / (diff + sleepTime)
             try {
                 Thread.sleep(sleepTime)
             } catch (e: InterruptedException) {
             }
-            fps = 1000000000 / (System.nanoTime() - start)
-
-
         }
 
         System.exit(0)

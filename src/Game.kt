@@ -6,8 +6,6 @@ enum class Direction {
 
 class Ray(var mapX: Int,
           var mapY: Int,
-          var x: Double,
-          var y: Double,
           var distance: Double,
           var side: Int,
           var direction: Direction
@@ -74,16 +72,16 @@ class Game(val buffer: IntArray,
             map
     )
 
+    val portalMap = HashMap<Pair<Int, Int>, Pair<Int, Int>>()
+
+    init {
+        portalMap[Pair(0, 2)] = Pair(13, 13)
+        //portalMap[Pair(14, 6)] = Pair(0, 1)
+    }
+
+
 
     fun tick(frame: Int) {
-
-/*
-        for (i in 1..width - 1) {
-            paintLine(frame / 10, height % i, height -1, frame * i)
-        }
-        */
-
-        //player.rotate(0.001)
 
         for (x in 0..width) {
             val ray = castRay(x)
@@ -99,25 +97,7 @@ class Game(val buffer: IntArray,
             var shade = 0
             var intensity = if (ray.side == 0) 255 else 150
 
-            intensity -= (ray.distance * 8).toInt()
-
-/*
-            if (map[ray.mapX][ray.mapY] == 1) {
-                shade = color(0, 0, intensity)
-            }
-            if (map[ray.mapX][ray.mapY] == 2) {
-                shade = color(0, intensity, 0)
-            }
-            if (map[ray.mapX][ray.mapY] == 3) {
-                shade = color(intensity, 0, 0)
-            }
-            if (map[ray.mapX][ray.mapY] == 4) {
-                shade = color(0, intensity, intensity)
-            }
-            if (map[ray.mapX][ray.mapY] == 5) {
-                shade = color(intensity, 0, intensity)
-            }
-            */
+           // intensity -= (ray.distance * 8).toInt()
 
             if (ray.direction == Direction.NORTH) {
                 shade = color(0, 0, intensity)
@@ -129,9 +109,7 @@ class Game(val buffer: IntArray,
                 shade = color(0, intensity, intensity)
             }
 
-
             paintLine(x, drawStart, drawEnd, shade)
-
         }
     }
 
@@ -152,13 +130,33 @@ class Game(val buffer: IntArray,
     }
 
     fun castRay(x: Int): Ray {
-
-        var mapX = player.mapPosX
-        var mapY = player.mapPosY
-
         val camX: Double = 2 * x / width.toDouble() - 1 // x-coordinate in camera space
         val rayDirX = player.direction.x + player.camPlane.x * camX
         val rayDirY = player.direction.y + player.camPlane.y * camX
+
+        val ray = cast(rayDirX, rayDirY, player.position.x, player.position.y, player.mapPosX, player.mapPosY)
+
+        val portal = portalMap[Pair(ray.mapX, ray.mapY)]
+        if (portal == null) {
+            return ray
+        }
+
+        var xOffset = player.position.x - player.mapPosX
+        var yOffset = player.position.y - player.mapPosY
+        var xOrigin = xOffset + portal.first
+        var yOrigin = yOffset + portal.second
+
+        println(yOrigin)
+        val secondRay = cast(rayDirX, rayDirY, xOrigin, yOrigin, portal.first, portal.second)
+        return Ray(secondRay.mapX, secondRay.mapY,ray.distance + secondRay.distance, secondRay.side, secondRay.direction)
+    }
+
+
+    fun cast(rayDirX: Double, rayDirY: Double, originX: Double, originY: Double, mapXOrigin: Int, mapYOrigin: Int): Ray {
+
+        var mapX = mapXOrigin
+        var mapY = mapYOrigin
+
         var perpWallDist: Double
 
         var sideDistX: Double
@@ -175,20 +173,21 @@ class Game(val buffer: IntArray,
 
         if (rayDirX < 0) {
             stepX = -1
-            sideDistX = (player.position.x - mapX) * deltaDistX
+            sideDistX = (originX - mapX) * deltaDistX
         } else {
             stepX = 1
-            sideDistX = (mapX + 1 - player.position.x) * deltaDistX
+            sideDistX = (mapX + 1 - originX) * deltaDistX
         }
 
         if (rayDirY < 0) {
             stepY = -1
-            sideDistY = (player.position.y - mapY) * deltaDistY
+            sideDistY = (originY - mapY) * deltaDistY
         } else {
             stepY = 1
-            sideDistY = (mapY + 1 - player.position.y) * deltaDistY
+            sideDistY = (mapY + 1 - originY) * deltaDistY
         }
 
+        var portalsPassed = 0
         // DDA
         while (hit == 0) {
             if (sideDistX < sideDistY) {
@@ -208,9 +207,13 @@ class Game(val buffer: IntArray,
 
         // Get ray len
         if (side == 0) {
-            perpWallDist = (mapX - player.position.x + (1 - stepX) / 2) / rayDirX
+            perpWallDist = (mapX - originX + (1 - stepX) / 2) / rayDirX
         } else {
-            perpWallDist = (mapY - player.position.y + (1 - stepY) / 2) / rayDirY
+            perpWallDist = (mapY - originY + (1 - stepY) / 2) / rayDirY
+        }
+
+        if (portalsPassed > 0) {
+            println("dist: $perpWallDist x: $mapX y: $mapY")
         }
 
         var direction: Direction
@@ -219,12 +222,12 @@ class Game(val buffer: IntArray,
         } else if (side == 0 && rayDirX < 0) {
             direction = Direction.SOUTH
         } else if (side == 1 && rayDirY >= 0) {
-            direction = Direction.EAST
-        } else {
             direction = Direction.WEST
+        } else {
+            direction = Direction.EAST
         }
 
-        return Ray(mapX, mapY, sideDistX, sideDistY, perpWallDist, side, direction)
+        return Ray(mapX, mapY, perpWallDist, side, direction)
     }
 
 }
