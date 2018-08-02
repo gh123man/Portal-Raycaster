@@ -75,8 +75,8 @@ class Game(val buffer: IntArray,
     val portalMap = HashMap<Pair<Int, Int>, Pair<Int, Int>>()
 
     init {
-        portalMap[Pair(0, 2)] = Pair(13, 13)
-        //portalMap[Pair(14, 6)] = Pair(0, 1)
+        portalMap[Pair(0, 2)] = Pair(14, 13)
+        portalMap[Pair(14, 13)] = Pair(0, 2)
     }
 
 
@@ -141,14 +141,16 @@ class Game(val buffer: IntArray,
             return ray
         }
 
+        // find the offset of the player from the ray hit destination
+        // then apply that offset to the exit portal origin
         var xOffset = player.position.x - ray.mapX
         var yOffset = player.position.y - ray.mapY
         var xOrigin = xOffset + portal.first
         var yOrigin = yOffset + portal.second
 
-        println(yOrigin)
+        // Portal first and second are flipped?
         val secondRay = cast(rayDirX, rayDirY, xOrigin, yOrigin, portal.first, portal.second)
-        return Ray(secondRay.mapX, secondRay.mapY,ray.distance + secondRay.distance, secondRay.side, secondRay.direction)
+        return Ray(secondRay.mapX, secondRay.mapY, secondRay.distance, secondRay.side, secondRay.direction)
     }
 
 
