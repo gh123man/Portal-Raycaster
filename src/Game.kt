@@ -141,8 +141,8 @@ class Game(val buffer: IntArray,
             return ray
         }
 
-        var xOffset = player.position.x - player.mapPosX
-        var yOffset = player.position.y - player.mapPosY
+        var xOffset = player.position.x - ray.mapX
+        var yOffset = player.position.y - ray.mapY
         var xOrigin = xOffset + portal.first
         var yOrigin = yOffset + portal.second
 
