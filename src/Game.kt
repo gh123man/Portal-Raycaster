@@ -36,7 +36,8 @@ class Ray(var mapX: Int,
           var stepY: Int,
           var distance: Double,
           var side: Int,
-          var direction: Direction
+          var origin: Vector,
+          var wallHitDirection: Direction
 )
 class Portal(var mapX: Int, var mapY: Int, var direction: Direction) {
     override fun hashCode(): Int {
@@ -66,6 +67,10 @@ class Vector(var x: Double, var y: Double) {
         y *= -1
         return this
     }
+
+    fun copy(): Vector {
+        return Vector(x, y)
+    }
 }
 
 
@@ -94,7 +99,7 @@ class Player(var position: Vector,
         val newY = position.y + direction.y * speed
 
 
-       // val portal = portalMap[Portal(newX.toInt(), newY.toInt(), ray.direction)] ?: return ray
+       // val portal = portalMap[Portal(newX.toInt(), newY.toInt(), ray.wallHitDirection)] ?: return ray
 
         if(map[(position.x + direction.x * speed * hitBox).toInt()][mapPosY] == 0) position.x += direction.x * speed
         if(map[mapPosX][(position.y + direction.y * speed * hitBox).toInt()] == 0) position.y += direction.y * speed
@@ -165,11 +170,11 @@ class Game(val buffer: IntArray,
 
            // intensity -= (ray.distance * 8).toInt()
 
-            if (ray.direction == Direction.NORTH) {
+            if (ray.wallHitDirection == Direction.NORTH) {
                 shade = color(0, 0, intensity)
-            } else if (ray.direction == Direction.SOUTH) {
+            } else if (ray.wallHitDirection == Direction.SOUTH) {
                 shade = color(0, intensity, 0)
-            } else if (ray.direction == Direction.EAST) {
+            } else if (ray.wallHitDirection == Direction.EAST) {
                 shade = color(intensity, 0, 0)
             } else {
                 shade = color(0, intensity, intensity)
@@ -199,30 +204,45 @@ class Game(val buffer: IntArray,
         val camX: Double = 2 * x / width.toDouble() - 1 // x-coordinate in camera space
         val rayDirection = Vector(player.direction.x + player.camPlane.x * camX, player.direction.y + player.camPlane.y * camX)
 
-        val ray = cast(rayDirection, Vector(player.position.x, player.position.y), player.mapPosX, player.mapPosY)
+        var ray = cast(rayDirection, Vector(player.position.x, player.position.y), player.mapPosX, player.mapPosY)
 
-        val portal = portalMap[Portal(ray.mapX, ray.mapY, ray.direction)] ?: return ray
+        // TODO: Cap this?
+        while (true) {
+            var newRay = castPortalRay(rayDirection, ray)
+            if (newRay == null) {
+                return ray
+            } else {
+                ray = newRay
+            }
+        }
+    }
+
+    fun castPortalRay(rayDirection: Vector, ray: Ray): Ray? {
+        val prevOrigin = ray.origin // Maybe copy here?
+        val portal = portalMap[Portal(ray.mapX, ray.mapY, ray.wallHitDirection)] ?: return null
         // Below here means the ray hit a portal wall
 
-        var rotateRayDeg = Direction.degreeRelationship(ray.direction, portal.direction)
-        if (rotateRayDeg == 180.0) {
-            rotateRayDeg = 0.0 // we want to mirror, not rotate in this case. TODO: clean this up
-        }
+        // Portals share the same wall (no rotation, just flipping)
+        val isMirrorPortal = ray.wallHitDirection == portal.direction
 
-        rayDirection.rotate(rotateRayDeg)
+        // If we need to rotate (its not a mirror) the ammount of degrees we need to rotate
+        var rotateRayDeg = Direction.degreeRelationship(ray.wallHitDirection, portal.direction)
 
         // find the offset of the player from the ray hit destination
         // then apply that offset to the exit portal origin
-        var xOffset = player.position.x - ray.mapX
-        var yOffset = player.position.y - ray.mapY
+        var xOffset = prevOrigin.x - ray.mapX
+        var yOffset = prevOrigin.y - ray.mapY
+
+        // if its not a mirror, rotate the ray wallHitDirection
+        if (!isMirrorPortal) rayDirection.rotate(rotateRayDeg)
 
         // if a portal hits a wall on the south side (example), we need to correct the exit coordinates to cast the ray from the north side
         // so the player can pass though the portal block
         var xWallCorrect = if (ray.side == 0) ray.stepX else 0
         var yWallCorrect = if (ray.side == 1) ray.stepY else 0
 
-        // If the ray has to make a 90 degree rotation, we need to wall correct by 2 blocks
-        if (Math.abs(rotateRayDeg) != 0.0 || ray.direction == portal.direction) {
+        // If the ray has to make a 90 degree rotation or is mirrored, we need to wall correct by 2 blocks
+        if (Math.abs(rotateRayDeg) != 0.0 || ray.wallHitDirection == portal.direction) {
             xWallCorrect *= 2
             yWallCorrect *= 2
         }
@@ -232,11 +252,12 @@ class Game(val buffer: IntArray,
                             yOffset + yWallCorrect)
 
         // rotate it and offset it from the portal coords
-        origin.rotate(rotateRayDeg)
+        if (!isMirrorPortal) origin.rotate(rotateRayDeg)
         origin.x += portal.mapX
         origin.y += portal.mapY
 
-        if (ray.direction == portal.direction) {
+        // Perform mirroring if its a mirror portal
+        if (isMirrorPortal) {
             if (ray.side == 0) {
                 rayDirection.mirrorX()
                 origin.mirrorX()
@@ -246,8 +267,7 @@ class Game(val buffer: IntArray,
             }
         }
 
-        val secondRay = cast(rayDirection, origin, portal.mapX, portal.mapY)
-        return Ray(secondRay.mapX, secondRay.mapY, secondRay.stepX, secondRay.stepY, secondRay.distance, secondRay.side, secondRay.direction)
+        return cast(rayDirection, origin, portal.mapX, portal.mapY)
     }
 
 
@@ -315,18 +335,18 @@ class Game(val buffer: IntArray,
             println("dist: $perpWallDist x: $mapX y: $mapY")
         }
 
-        var direction: Direction
+        var wallHitDirection: Direction
         if (side == 0 && rayDirection.x >= 0) {
-            direction = Direction.NORTH
+            wallHitDirection = Direction.NORTH
         } else if (side == 0 && rayDirection.x < 0) {
-            direction = Direction.SOUTH
+            wallHitDirection = Direction.SOUTH
         } else if (side == 1 && rayDirection.y >= 0) {
-            direction = Direction.WEST
+            wallHitDirection = Direction.WEST
         } else {
-            direction = Direction.EAST
+            wallHitDirection = Direction.EAST
         }
 
-        return Ray(mapX, mapY, stepX, stepY, perpWallDist, side, direction)
+        return Ray(mapX, mapY, stepX, stepY, perpWallDist, side, origin, wallHitDirection)
     }
 
 }
