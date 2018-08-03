@@ -1,3 +1,4 @@
+import java.util.*
 
 enum class Direction {
     NORTH, SOUTH, WEST, EAST
@@ -6,16 +7,27 @@ enum class Direction {
 
 class Ray(var mapX: Int,
           var mapY: Int,
+          var stepX: Int,
+          var stepY: Int,
           var distance: Double,
           var side: Int,
           var direction: Direction
 )
+class Portal(var mapX: Int, var mapY: Int, var direction: Direction) {
+    override fun hashCode(): Int {
+        return Objects.hash(mapX, mapY, direction)
+    }
 
+    override fun equals(other: Any?): Boolean {
+        return other?.hashCode() == hashCode()
+    }
+}
 class Vector(var x: Double, var y: Double)
 class Player(var position: Vector,
              var direction: Vector,
              var camPlane: Vector,
-             val map: Array<IntArray>) {
+             val map: Array<IntArray>,
+             val portalMap: HashMap<Portal, Portal>) {
 
     val hitBox = 10
 
@@ -37,9 +49,19 @@ class Player(var position: Vector,
 
     fun move(speed: Double) {
         // 12 is the hitbox size
+        val newX = position.x + direction.x * speed
+        val newY = position.y + direction.y * speed
+
+
+       // val portal = portalMap[Portal(newX.toInt(), newY.toInt(), ray.direction)] ?: return ray
+
         if(map[(position.x + direction.x * speed * hitBox).toInt()][mapPosY] == 0) position.x += direction.x * speed
         if(map[mapPosX][(position.y + direction.y * speed * hitBox).toInt()] == 0) position.y += direction.y * speed
     }
+}
+
+class PortalIndex() {
+
 }
 
 
@@ -48,8 +70,10 @@ class Game(val buffer: IntArray,
            val height: Int) {
 
     val map = arrayOf(
+
+            // X goes down y goes across
             intArrayOf(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
-            intArrayOf(1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1),
+            intArrayOf(1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 2, 1),
             intArrayOf(1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1),
             intArrayOf(1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1),
             intArrayOf(1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1),
@@ -65,21 +89,25 @@ class Game(val buffer: IntArray,
             intArrayOf(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1)
     )
 
+    val portalMap = HashMap<Portal, Portal>()
+
     val player = Player(
             Vector(2.0, 2.0),
             Vector(-1.0, 0.0),
             Vector(0.0, 0.66),
-            map
+            map,
+            portalMap
     )
 
-    val portalMap = HashMap<Pair<Int, Int>, Pair<Int, Int>>()
-
     init {
-        portalMap[Pair(0, 2)] = Pair(14, 13)
-        portalMap[Pair(14, 13)] = Pair(0, 2)
+        portalMap[Portal(0, 2, Direction.SOUTH)] = Portal(5,10, Direction.NORTH)
+        portalMap[Portal(5,10, Direction.NORTH)] = Portal(0, 2, Direction.SOUTH)
+
+        portalMap[Portal(3, 0, Direction.EAST)] = Portal(10,14, Direction.WEST)
+        portalMap[Portal(10,14, Direction.WEST)] = Portal(3, 0, Direction.EAST)
+
+        val port = portalMap[Portal(13,10, Direction.NORTH)]
     }
-
-
 
     fun tick(frame: Int) {
 
@@ -136,21 +164,23 @@ class Game(val buffer: IntArray,
 
         val ray = cast(rayDirX, rayDirY, player.position.x, player.position.y, player.mapPosX, player.mapPosY)
 
-        val portal = portalMap[Pair(ray.mapX, ray.mapY)]
-        if (portal == null) {
-            return ray
-        }
+        val portal = portalMap[Portal(ray.mapX, ray.mapY, ray.direction)] ?: return ray
 
         // find the offset of the player from the ray hit destination
         // then apply that offset to the exit portal origin
         var xOffset = player.position.x - ray.mapX
         var yOffset = player.position.y - ray.mapY
-        var xOrigin = xOffset + portal.first
-        var yOrigin = yOffset + portal.second
 
-        // Portal first and second are flipped?
-        val secondRay = cast(rayDirX, rayDirY, xOrigin, yOrigin, portal.first, portal.second)
-        return Ray(secondRay.mapX, secondRay.mapY, secondRay.distance, secondRay.side, secondRay.direction)
+        // if a portal hits a wall on the south side, we need to correct the exit coordinates to cast the ray from the south side
+        // so the player can pass though the portal block
+        var xWallCorrect = if (ray.side == 0) ray.stepX else 0
+        var yWallCorrect = if (ray.side == 1) ray.stepY else 0
+
+        var xOrigin = xOffset + portal.mapX + xWallCorrect
+        var yOrigin = yOffset + portal.mapY + yWallCorrect
+
+        val secondRay = cast(rayDirX, rayDirY, xOrigin, yOrigin, portal.mapX, portal.mapY)
+        return Ray(secondRay.mapX, secondRay.mapY, secondRay.stepX, secondRay.stepY, secondRay.distance, secondRay.side, secondRay.direction)
     }
 
 
@@ -167,7 +197,7 @@ class Game(val buffer: IntArray,
         var deltaDistX = Math.abs(1 / rayDirX)
         var deltaDistY = Math.abs(1 / rayDirY)
 
-        var stepX = 0 // Direction to fire ray
+        var stepX = 0
         var stepY = 0
 
         var hit = 0
@@ -229,7 +259,7 @@ class Game(val buffer: IntArray,
             direction = Direction.EAST
         }
 
-        return Ray(mapX, mapY, perpWallDist, side, direction)
+        return Ray(mapX, mapY, stepX, stepY, perpWallDist, side, direction)
     }
 
 }
