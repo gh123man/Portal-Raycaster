@@ -155,11 +155,11 @@ constructor() : JFrame(), Runnable, KeyListener {
         }
 
         if (e.keyCode == KeyEvent.VK_A) {
-            game.player.rotate(0.1)
+            game.player.rotate(5.0)
         }
 
         if (e.keyCode == KeyEvent.VK_D) {
-            game.player.rotate(-0.1)
+            game.player.rotate(-5.0)
         }
     }
 

@@ -1,7 +1,32 @@
 import java.util.*
 
 enum class Direction {
-    NORTH, SOUTH, WEST, EAST
+    NORTH,
+    SOUTH,
+    WEST,
+    EAST;
+
+    companion object {
+        private val directionMap = hashMapOf(
+                NORTH to 1,
+                EAST to 2,
+                SOUTH to 3,
+                WEST to 4
+        )
+
+        fun degreeRelationship(first: Direction, second: Direction): Double {
+            if (first == second) return 180.0
+            val firstVal = directionMap[first] ?: return 0.0
+            val secondVal = directionMap[second] ?: return 0.0
+            val diff = firstVal - secondVal
+            if (diff == -1 || diff == -3) {
+                return 90.0
+            } else if (diff == 1 || diff == 3) {
+                return -90.0
+            }
+            return 0.0
+        }
+    }
 }
 
 
@@ -22,7 +47,28 @@ class Portal(var mapX: Int, var mapY: Int, var direction: Direction) {
         return other?.hashCode() == hashCode()
     }
 }
-class Vector(var x: Double, var y: Double)
+
+class Vector(var x: Double, var y: Double) {
+    fun rotate(degrees: Double): Vector {
+        val rotRad = Math.toRadians(degrees)
+        val oldX = x
+        x = x * Math.cos(rotRad) - y * Math.sin(rotRad)
+        y = oldX * Math.sin(rotRad) + y * Math.cos(rotRad)
+        return this
+    }
+
+    fun mirrorX(): Vector {
+        x *= -1
+        return this
+    }
+
+    fun mirrorY(): Vector {
+        y *= -1
+        return this
+    }
+}
+
+
 class Player(var position: Vector,
              var direction: Vector,
              var camPlane: Vector,
@@ -37,14 +83,9 @@ class Player(var position: Vector,
     val mapPosY: Int
         get() = position.y.toInt()
 
-    fun rotate(speed: Double) {
-        val oldDirX = direction.x
-        direction.x = direction.x * Math.cos(speed) - direction.y * Math.sin(speed)
-        direction.y = oldDirX * Math.sin(speed) + direction.y * Math.cos(speed)
-
-        val oldPlaneX = camPlane.x
-        camPlane.x = camPlane.x * Math.cos(speed) - camPlane.y * Math.sin(speed)
-        camPlane.y = oldPlaneX * Math.sin(speed) + camPlane.y * Math.cos(speed)
+    fun rotate(degrees: Double) {
+        direction.rotate(degrees)
+        camPlane.rotate(degrees)
     }
 
     fun move(speed: Double) {
@@ -58,10 +99,6 @@ class Player(var position: Vector,
         if(map[(position.x + direction.x * speed * hitBox).toInt()][mapPosY] == 0) position.x += direction.x * speed
         if(map[mapPosX][(position.y + direction.y * speed * hitBox).toInt()] == 0) position.y += direction.y * speed
     }
-}
-
-class PortalIndex() {
-
 }
 
 
@@ -100,13 +137,14 @@ class Game(val buffer: IntArray,
     )
 
     init {
-        portalMap[Portal(0, 2, Direction.SOUTH)] = Portal(5,10, Direction.NORTH)
-        portalMap[Portal(5,10, Direction.NORTH)] = Portal(0, 2, Direction.SOUTH)
+        portalMap[Portal(0,4, Direction.SOUTH)] = Portal(5,10, Direction.NORTH)
+        portalMap[Portal(5,10, Direction.NORTH)] = Portal(0, 4, Direction.SOUTH)
 
-        portalMap[Portal(3, 0, Direction.EAST)] = Portal(10,14, Direction.WEST)
-        portalMap[Portal(10,14, Direction.WEST)] = Portal(3, 0, Direction.EAST)
+        portalMap[Portal(5,0, Direction.EAST)] = Portal(7,0, Direction.EAST)
+        portalMap[Portal(7,0, Direction.EAST)] = Portal(5, 0, Direction.EAST)
 
-        val port = portalMap[Portal(13,10, Direction.NORTH)]
+        portalMap[Portal(0,2, Direction.SOUTH)] = Portal(3, 0, Direction.EAST)
+        portalMap[Portal(3,0, Direction.EAST)] = Portal(0, 2, Direction.SOUTH)
     }
 
     fun tick(frame: Int) {
@@ -159,32 +197,61 @@ class Game(val buffer: IntArray,
 
     fun castRay(x: Int): Ray {
         val camX: Double = 2 * x / width.toDouble() - 1 // x-coordinate in camera space
-        val rayDirX = player.direction.x + player.camPlane.x * camX
-        val rayDirY = player.direction.y + player.camPlane.y * camX
+        val rayDirection = Vector(player.direction.x + player.camPlane.x * camX, player.direction.y + player.camPlane.y * camX)
 
-        val ray = cast(rayDirX, rayDirY, player.position.x, player.position.y, player.mapPosX, player.mapPosY)
+        val ray = cast(rayDirection, Vector(player.position.x, player.position.y), player.mapPosX, player.mapPosY)
 
         val portal = portalMap[Portal(ray.mapX, ray.mapY, ray.direction)] ?: return ray
+        // Below here means the ray hit a portal wall
+
+        var rotateRayDeg = Direction.degreeRelationship(ray.direction, portal.direction)
+        if (rotateRayDeg == 180.0) {
+            rotateRayDeg = 0.0 // we want to mirror, not rotate in this case. TODO: clean this up
+        }
+
+        rayDirection.rotate(rotateRayDeg)
 
         // find the offset of the player from the ray hit destination
         // then apply that offset to the exit portal origin
         var xOffset = player.position.x - ray.mapX
         var yOffset = player.position.y - ray.mapY
 
-        // if a portal hits a wall on the south side, we need to correct the exit coordinates to cast the ray from the south side
+        // if a portal hits a wall on the south side (example), we need to correct the exit coordinates to cast the ray from the north side
         // so the player can pass though the portal block
         var xWallCorrect = if (ray.side == 0) ray.stepX else 0
         var yWallCorrect = if (ray.side == 1) ray.stepY else 0
 
-        var xOrigin = xOffset + portal.mapX + xWallCorrect
-        var yOrigin = yOffset + portal.mapY + yWallCorrect
+        // If the ray has to make a 90 degree rotation, we need to wall correct by 2 blocks
+        if (Math.abs(rotateRayDeg) != 0.0 || ray.direction == portal.direction) {
+            xWallCorrect *= 2
+            yWallCorrect *= 2
+        }
 
-        val secondRay = cast(rayDirX, rayDirY, xOrigin, yOrigin, portal.mapX, portal.mapY)
+        // find the origin and wall offset
+        var origin = Vector(xOffset + xWallCorrect,
+                            yOffset + yWallCorrect)
+
+        // rotate it and offset it from the portal coords
+        origin.rotate(rotateRayDeg)
+        origin.x += portal.mapX
+        origin.y += portal.mapY
+
+        if (ray.direction == portal.direction) {
+            if (ray.side == 0) {
+                rayDirection.mirrorX()
+                origin.mirrorX()
+            } else {
+                rayDirection.mirrorY()
+                origin.mirrorY()
+            }
+        }
+
+        val secondRay = cast(rayDirection, origin, portal.mapX, portal.mapY)
         return Ray(secondRay.mapX, secondRay.mapY, secondRay.stepX, secondRay.stepY, secondRay.distance, secondRay.side, secondRay.direction)
     }
 
 
-    fun cast(rayDirX: Double, rayDirY: Double, originX: Double, originY: Double, mapXOrigin: Int, mapYOrigin: Int): Ray {
+    fun cast(rayDirection: Vector, origin: Vector, mapXOrigin: Int, mapYOrigin: Int): Ray {
 
         var mapX = mapXOrigin
         var mapY = mapYOrigin
@@ -194,8 +261,8 @@ class Game(val buffer: IntArray,
         var sideDistX: Double
         var sideDistY: Double
 
-        var deltaDistX = Math.abs(1 / rayDirX)
-        var deltaDistY = Math.abs(1 / rayDirY)
+        var deltaDistX = Math.abs(1 / rayDirection.x)
+        var deltaDistY = Math.abs(1 / rayDirection.y)
 
         var stepX = 0
         var stepY = 0
@@ -203,20 +270,20 @@ class Game(val buffer: IntArray,
         var hit = 0
         var side = 0
 
-        if (rayDirX < 0) {
+        if (rayDirection.x < 0) {
             stepX = -1
-            sideDistX = (originX - mapX) * deltaDistX
+            sideDistX = (origin.x - mapX) * deltaDistX
         } else {
             stepX = 1
-            sideDistX = (mapX + 1 - originX) * deltaDistX
+            sideDistX = (mapX + 1 - origin.x) * deltaDistX
         }
 
-        if (rayDirY < 0) {
+        if (rayDirection.y < 0) {
             stepY = -1
-            sideDistY = (originY - mapY) * deltaDistY
+            sideDistY = (origin.y - mapY) * deltaDistY
         } else {
             stepY = 1
-            sideDistY = (mapY + 1 - originY) * deltaDistY
+            sideDistY = (mapY + 1 - origin.y) * deltaDistY
         }
 
         var portalsPassed = 0
@@ -239,9 +306,9 @@ class Game(val buffer: IntArray,
 
         // Get ray len
         if (side == 0) {
-            perpWallDist = (mapX - originX + (1 - stepX) / 2) / rayDirX
+            perpWallDist = (mapX - origin.x + (1 - stepX) / 2) / rayDirection.x
         } else {
-            perpWallDist = (mapY - originY + (1 - stepY) / 2) / rayDirY
+            perpWallDist = (mapY - origin.y + (1 - stepY) / 2) / rayDirection.y
         }
 
         if (portalsPassed > 0) {
@@ -249,11 +316,11 @@ class Game(val buffer: IntArray,
         }
 
         var direction: Direction
-        if (side == 0 && rayDirX >= 0) {
+        if (side == 0 && rayDirection.x >= 0) {
             direction = Direction.NORTH
-        } else if (side == 0 && rayDirX < 0) {
+        } else if (side == 0 && rayDirection.x < 0) {
             direction = Direction.SOUTH
-        } else if (side == 1 && rayDirY >= 0) {
+        } else if (side == 1 && rayDirection.y >= 0) {
             direction = Direction.WEST
         } else {
             direction = Direction.EAST
