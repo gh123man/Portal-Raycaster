@@ -196,37 +196,48 @@ class Game(val buffer: IntArray,
     fun tick(frame: Int) {
 
         for (x in 0..width) {
-            val ray = castRay(x)
-
-            // cal wall height
-            val wallHeight = (height / ray.distance).toInt()
-            var drawStart = -(wallHeight / 2) + (height / 2)
-            if (drawStart < 0) drawStart = 0
-
-            var drawEnd = (wallHeight / 2) + (height / 2)
-            if (drawEnd >= height) drawEnd = height - 1
+            val rays = castRay(x)
+            val lastRay = rays.last()
 
             var shade = 0
-            var intensity = if (ray.side == 0) 255 else 150
+            var intensity = if (lastRay.side == 0) 255 else 150
 
-            intensity -= (ray.distance * 2).toInt()
+            intensity -= (lastRay.distance * 2).toInt()
             if (intensity < 0) {
                 intensity = 0
             }
 
-            if (ray.wallHitDirection == Direction.NORTH) {
+            if (lastRay.wallHitDirection == Direction.NORTH) {
                 shade = color(0, 0, intensity)
-            } else if (ray.wallHitDirection == Direction.SOUTH) {
+            } else if (lastRay.wallHitDirection == Direction.SOUTH) {
                 shade = color(0, intensity, 0)
-            } else if (ray.wallHitDirection == Direction.EAST) {
+            } else if (lastRay.wallHitDirection == Direction.EAST) {
                 shade = color(intensity, 0, 0)
             } else {
                 shade = color(0, intensity, intensity)
             }
 
+            var (drawStart, drawEnd) = calcDrawStartEnd(lastRay)
             paintLine(x, drawStart, drawEnd, shade)
-            paintFloor(ray, x, drawEnd)
+            paintFloor(lastRay, x, drawEnd, height)
+            /*
+            for (ray in rays.reversed()) {
+                var (newStart, newEnd) = calcDrawStartEnd(ray)
+                paintFloor(ray, x, newEnd, drawEnd)
+                drawEnd = newEnd
+            }
+            */
         }
+    }
+
+    fun calcDrawStartEnd(ray: Ray): Pair<Int, Int> {
+        val wallHeight = (height / ray.distance).toInt()
+        var drawStart = -(wallHeight / 2) + (height / 2)
+        if (drawStart < 0) drawStart = 0
+
+        var drawEnd = (wallHeight / 2) + (height / 2)
+        if (drawEnd >= height) drawEnd = height - 1
+        return Pair(drawStart, drawEnd)
     }
 
     fun paintLine(x: Int, start: Int, end: Int, color: Int) {
@@ -245,19 +256,20 @@ class Game(val buffer: IntArray,
         return -0x1000000 or Red or Green or Blue //0xFF000000 for 100% Alpha. Bitwise OR everything together.
     }
 
-    fun castRay(x: Int): Ray {
+    fun castRay(x: Int): List<Ray> {
         val camX: Double = 2 * x / width.toDouble() - 1 // x-coordinate in camera space
         val rayDirection = Vector(player.direction.x + player.camPlane.x * camX, player.direction.y + player.camPlane.y * camX)
 
         var ray = castWall(rayDirection, Vector(player.position.x, player.position.y), player.mapPosX, player.mapPosY)
+        var rays = arrayListOf<Ray>(ray)
 
         // TODO: Cap this?
         while (true) {
-            var newRay = castPortalRay(ray)
+            var newRay = castPortalRay(rays.last())
             if (newRay == null) {
-                return ray
+                return rays
             } else {
-                ray = newRay
+                rays.add(newRay)
             }
         }
     }
@@ -373,7 +385,7 @@ class Game(val buffer: IntArray,
         return Ray(mapX, mapY, stepX, stepY, perpWallDist, side, wallX, origin, rayDirection, wallHitDirection)
     }
 
-    fun paintFloor(ray: Ray, x: Int, wallDrawEnd: Int) {
+    fun paintFloor(ray: Ray, x: Int, wallDrawEnd: Int, stopHeight: Int) {
         var floorXWall = 0.0
         var floorYWall = 0.0
 
@@ -395,10 +407,10 @@ class Game(val buffer: IntArray,
         var currentDist = 0.0
 
         var drawEnd = wallDrawEnd
-        if (drawEnd < 0) drawEnd = height
+        if (drawEnd < 0) drawEnd = stopHeight
 
-        for (y in drawEnd..height - 2) {
-            currentDist = height / (2.0 * y - height)
+        for (y in drawEnd..stopHeight - 2) {
+            currentDist = stopHeight / (2.0 * y - stopHeight)
 
             var weight = currentDist / distWall
 
@@ -411,7 +423,13 @@ class Game(val buffer: IntArray,
             if(checkerBoardPattern == 0) floorColor = color(119, 119, 119)
             else floorColor = color(51, 51, 51)
 
+            var ceilingColor  = 0
+            if(checkerBoardPattern == 0) ceilingColor =  color(119, 119, 119)
+            else ceilingColor = color(226, 226, 226)
+
             buffer[y * width + x] = floorColor
+            buffer[(stopHeight - y) * width + x] = ceilingColor
+
         }
     }
 }

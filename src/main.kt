@@ -88,7 +88,7 @@ constructor() : JFrame(), Runnable, KeyListener {
 
         while (running) {
             start = System.nanoTime()
-            frame.graphics.clearRect(0, 0, width, height)
+           // frame.graphics.clearRect(0, 0, width, height)
             tick ++
             game.player.move(move)
             game.player.rotate(turn)
