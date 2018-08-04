@@ -52,44 +52,54 @@ class Player(var position: Vector,
         if (cardinalDirection != null) {
             val portal = portalMap[Portal(enterX, enterY, cardinalDirection)]
             if (portal != null) {
-                var xOffset = newX - newX.toInt()
-                var yOffset = newY - newY.toInt()
 
-                // egress offset
-                if (portal.direction == Direction.NORTH) {
-                    xOffset -= 1
-                } else if (portal.direction == Direction.SOUTH) {
-                    xOffset += 1
-                } else if (portal.direction == Direction.EAST) {
-                    yOffset -= 1
-                } else if (portal.direction == Direction.WEST) {
-                    yOffset += 1
-                }
+                /*
+                1. Move the player to the new position
+                2. rotate the position vector for the block the player is in
+                3. offset by the block value in the direction you are walking
+                4. apply the requested movement
+
+                 */
+
+                val offsetVector = Vector(position.x - mapPosX, position.y - mapPosY)
+
+                var xOffset = 0
+                var yOffset = 0
 
                 val isMirrorPortal = cardinalDirection == portal.direction
                 var rotateRayDeg = Direction.degreeRelationship(cardinalDirection, portal.direction)
-                
-                val newPos = Vector(xOffset, yOffset).rotate(rotateRayDeg)
 
-                position.x = portal.mapX + newPos.x
-                position.y = portal.mapY + newPos.y
-
-
-
-                // not tested
-                if (isMirrorPortal) {
-                    if (cardinalDirection == Direction.EAST || cardinalDirection == Direction.WEST) {
-                        direction.mirrorX()
-                        camPlane.mirrorX()
-                    } else {
-                        direction.mirrorY()
-                        camPlane.mirrorY()
+                if (rotateRayDeg != 0.0) {
+                    if (portal.direction == Direction.NORTH) {
+                        xOffset -= 1
+                    } else if (portal.direction == Direction.SOUTH) {
+                        xOffset += 1
+                    } else if (portal.direction == Direction.EAST) {
+                        yOffset += 1
+                    } else if (portal.direction == Direction.WEST) {
+                        yOffset -= 1
                     }
-                    return
                 }
 
-                direction.rotate(rotateRayDeg)
-                camPlane.rotate(rotateRayDeg)
+                if (isMirrorPortal) {
+                    if (cardinalDirection == Direction.EAST || cardinalDirection == Direction.WEST) {
+                        direction.mirrorY()
+                        camPlane.mirrorY()
+                        offsetVector.mirrorY()
+                    } else {
+                        direction.mirrorX()
+                        camPlane.mirrorX()
+                        offsetVector.mirrorX()
+                    }
+                } else {
+                    direction.rotate(rotateRayDeg)
+                    camPlane.rotate(rotateRayDeg)
+                    offsetVector.rotate(rotateRayDeg)
+                }
+
+                position.x = portal.mapX + offsetVector.x + xOffset + direction.x * speed
+                position.y = portal.mapY + offsetVector.y + yOffset + direction.y * speed
+
                 return
             }
         }
