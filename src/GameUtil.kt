@@ -1,4 +1,3 @@
-import java.util.*
 
 enum class Direction {
     NORTH,
@@ -27,8 +26,8 @@ enum class Direction {
             return 0.0
         }
     }
-}
 
+}
 
 class Ray(var mapX: Int,
           var mapY: Int,
@@ -41,11 +40,26 @@ class Ray(var mapX: Int,
 )
 
 class Vector(var x: Double, var y: Double) {
+
+    constructor(x: Int, y: Int): this(x.toDouble(), y.toDouble())
+
     fun rotate(degrees: Double): Vector {
         val rotRad = Math.toRadians(degrees)
         val oldX = x
         x = x * Math.cos(rotRad) - y * Math.sin(rotRad)
         y = oldX * Math.sin(rotRad) + y * Math.cos(rotRad)
+        return this
+    }
+
+    fun add(v: Vector): Vector {
+        x += v.x
+        y += v.y
+        return this
+    }
+
+    fun sub(v: Vector): Vector {
+        x -= v.x
+        y -= v.y
         return this
     }
 

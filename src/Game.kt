@@ -1,6 +1,5 @@
 import java.util.*
 
-
 class Portal(var mapX: Int, var mapY: Int, var direction: Direction) {
     override fun hashCode(): Int {
         return Objects.hash(mapX, mapY, direction)
@@ -8,6 +7,19 @@ class Portal(var mapX: Int, var mapY: Int, var direction: Direction) {
 
     override fun equals(other: Any?): Boolean {
         return other?.hashCode() == hashCode()
+    }
+
+    companion object {
+        fun displaceVectorForRotation(v: Vector, cardinalRotation: Double) {
+            if (cardinalRotation == 180.0) {
+                v.x += 1
+                v.y += 1
+            } else if (cardinalRotation == 90.0) {
+                v.x += 1
+            } else if (cardinalRotation == -90.0) {
+                v.y += 1
+            }
+        }
     }
 }
 
@@ -58,35 +70,21 @@ class Player(var position: Vector,
                 2. rotate the position vector for the block the player is in
                 3. offset by the block value in the direction you are walking
                 4. apply the requested movement
-
                  */
 
-                val offsetVector = Vector(position.x - mapPosX, position.y - mapPosY)
-
-                var xOffset = 0
-                var yOffset = 0
-
+                val playerOffsetVector = Vector(position.x - mapPosX,
+                                                position.y - mapPosY)
                 var rotateRayDeg = Direction.degreeRelationship(cardinalDirection, portal.direction)
 
-                if (rotateRayDeg != 0.0) {
-                    if (portal.direction == Direction.NORTH) {
-                        xOffset -= 1
-                    } else if (portal.direction == Direction.SOUTH) {
-                        xOffset += 1
-                    } else if (portal.direction == Direction.EAST) {
-                        yOffset += 1
-                    } else if (portal.direction == Direction.WEST) {
-                        yOffset -= 1
-                    }
-                }
+                val mapOffsetVector = Vector(0.0, 0.0)
+                Portal.displaceVectorForRotation(mapOffsetVector, rotateRayDeg)
 
                 direction.rotate(rotateRayDeg)
                 camPlane.rotate(rotateRayDeg)
-                offsetVector.rotate(rotateRayDeg)
+                playerOffsetVector.rotate(rotateRayDeg)
 
-                position.x = portal.mapX + offsetVector.x + xOffset + direction.x * speed
-                position.y = portal.mapY + offsetVector.y + yOffset + direction.y * speed
-
+                position.x = portal.mapX + playerOffsetVector.x + mapOffsetVector.x + direction.x * speed
+                position.y = portal.mapY + playerOffsetVector.y + mapOffsetVector.y + direction.y * speed
                 return
             }
         }
@@ -224,35 +222,21 @@ class Game(val buffer: IntArray,
 
         // find the offset of the player from the ray hit destination
         // then apply that offset to the exit portal origin
-        var xOffset = prevOrigin.x - ray.mapX
-        var yOffset = prevOrigin.y - ray.mapY
-
-
-        var xPortalOffset = portal.mapX - ray.mapX
-        var yPortalOffset = portal.mapY - ray.mapY
-
+        var origin = Vector(prevOrigin.x - ray.mapX,
+                            prevOrigin.y - ray.mapY)
 
         // if a portal hits a wall on the south side (example), we need to correct the exit coordinates to cast the ray from the north side
         // so the player can pass though the portal block
-        var xWallCorrect = if (ray.side == 0) ray.stepX else 0
-        var yWallCorrect = if (ray.side == 1) ray.stepY else 0
+        val wallCorrection = Vector(if (ray.side == 0) ray.stepX else 0,
+                                    if (ray.side == 1) ray.stepY else 0)
 
-        // find the origin and wall offset
-        var origin = Vector(xOffset + xWallCorrect,
-                            yOffset + yWallCorrect)
+        origin.add(wallCorrection)
 
         // rotate the origin in relation to the portal
         origin.rotate(rotateRayDeg)
 
         // offset the portal by one block depending on how much it rotates
-        if (rotateRayDeg == 180.0) {
-            origin.x += 1
-            origin.y += 1
-        } else if (rotateRayDeg == 90.0) {
-            origin.x += 1
-        } else if (rotateRayDeg == -90.0) {
-            origin.y += 1
-        }
+        Portal.displaceVectorForRotation(origin, rotateRayDeg)
 
         origin.x += portal.mapX
         origin.y += portal.mapY
