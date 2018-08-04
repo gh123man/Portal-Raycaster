@@ -6,7 +6,7 @@
 # JRE version: Java(TM) SE Runtime Environment (10.0.2+13) (build 10.0.2+13)
 # Java VM: Java HotSpot(TM) 64-Bit Server VM (10.0.2+13, mixed mode, tiered, compressed oops, g1 gc, windows-amd64)
 # Problematic frame:
-# j  Game.cast(LVector;LVector;II)LRay;+140
+# j  Game.castWall(LVector;LVector;II)LRay;+140
 #
 # No core dump will be written. Minidumps are not enabled by default on client versions of Windows
 #

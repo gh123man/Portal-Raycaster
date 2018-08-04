@@ -489,9 +489,9 @@ Event: 0.203 Thread 0x00000194a5524800 Uncommon trap: reason=unstable_if action=
 Event: 0.326 Thread 0x00000194a5524800 Uncommon trap: reason=unstable_if action=reinterpret pc=0x00000194b838cc34 method=java.util.HashMap.putVal(ILjava/lang/Object;Ljava/lang/Object;ZZ)Ljava/lang/Object; @ 69 c2
 Event: 0.381 Thread 0x00000194ccdc8000 Uncommon trap: reason=class_check action=maybe_recompile pc=0x00000194b83be714 method=java.util.HashMap.putVal(ILjava/lang/Object;Ljava/lang/Object;ZZ)Ljava/lang/Object; @ 91 c2
 Event: 0.381 Thread 0x00000194ccdc8000 Uncommon trap: reason=class_check action=maybe_recompile pc=0x00000194b83be714 method=java.util.HashMap.putVal(ILjava/lang/Object;Ljava/lang/Object;ZZ)Ljava/lang/Object; @ 91 c2
-Event: 1.031 Thread 0x00000194ccdc9800 Uncommon trap: reason=unstable_if action=reinterpret pc=0x00000194b83eafe0 method=Game.cast(DDDDII)LRay; @ 192 c2
-Event: 1.031 Thread 0x00000194ccdc9800 Uncommon trap: reason=unstable_if action=reinterpret pc=0x00000194b83e2bf0 method=Game.cast(DDDDII)LRay; @ 192 c2
-Event: 1.420 Thread 0x00000194ccdc9800 Uncommon trap: reason=unstable_if action=reinterpret pc=0x00000194b83f4e48 method=Game.cast(DDDDII)LRay; @ 285 c2
+Event: 1.031 Thread 0x00000194ccdc9800 Uncommon trap: reason=unstable_if action=reinterpret pc=0x00000194b83eafe0 method=Game.castWall(DDDDII)LRay; @ 192 c2
+Event: 1.031 Thread 0x00000194ccdc9800 Uncommon trap: reason=unstable_if action=reinterpret pc=0x00000194b83e2bf0 method=Game.castWall(DDDDII)LRay; @ 192 c2
+Event: 1.420 Thread 0x00000194ccdc9800 Uncommon trap: reason=unstable_if action=reinterpret pc=0x00000194b83f4e48 method=Game.castWall(DDDDII)LRay; @ 285 c2
 Event: 2.627 Thread 0x00000194ccdc9800 Uncommon trap: reason=unstable_if action=reinterpret pc=0x00000194b8402e44 method=Game.tick(I)V @ 49 c2
 
 Classes redefined (0 events):

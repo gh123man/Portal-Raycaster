@@ -35,7 +35,9 @@ class Ray(var mapX: Int,
           var stepY: Int,
           var distance: Double,
           var side: Int,
+          var wallX: Double,
           var origin: Vector,
+          var direction: Vector,
           var wallHitDirection: Direction
 )
 
