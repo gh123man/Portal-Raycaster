@@ -66,7 +66,6 @@ class Player(var position: Vector,
                 var xOffset = 0
                 var yOffset = 0
 
-                val isMirrorPortal = cardinalDirection == portal.direction
                 var rotateRayDeg = Direction.degreeRelationship(cardinalDirection, portal.direction)
 
                 if (rotateRayDeg != 0.0) {
@@ -81,21 +80,9 @@ class Player(var position: Vector,
                     }
                 }
 
-                if (isMirrorPortal) {
-                    if (cardinalDirection == Direction.EAST || cardinalDirection == Direction.WEST) {
-                        direction.mirrorY()
-                        camPlane.mirrorY()
-                        offsetVector.mirrorY()
-                    } else {
-                        direction.mirrorX()
-                        camPlane.mirrorX()
-                        offsetVector.mirrorX()
-                    }
-                } else {
-                    direction.rotate(rotateRayDeg)
-                    camPlane.rotate(rotateRayDeg)
-                    offsetVector.rotate(rotateRayDeg)
-                }
+                direction.rotate(rotateRayDeg)
+                camPlane.rotate(rotateRayDeg)
+                offsetVector.rotate(rotateRayDeg)
 
                 position.x = portal.mapX + offsetVector.x + xOffset + direction.x * speed
                 position.y = portal.mapY + offsetVector.y + yOffset + direction.y * speed
@@ -154,6 +141,9 @@ class Game(val buffer: IntArray,
 
         portalMap[Portal(5,0, Direction.EAST)] = Portal(7,0, Direction.EAST)
         portalMap[Portal(7,0, Direction.EAST)] = Portal(5, 0, Direction.EAST)
+
+        portalMap[Portal(14,5, Direction.NORTH)] = Portal(14,6, Direction.NORTH)
+        portalMap[Portal(14,6, Direction.NORTH)] = Portal(14, 5, Direction.NORTH)
 
         portalMap[Portal(0,2, Direction.SOUTH)] = Portal(3, 0, Direction.EAST)
         portalMap[Portal(3,0, Direction.EAST)] = Portal(0, 2, Direction.SOUTH)
@@ -229,9 +219,6 @@ class Game(val buffer: IntArray,
         val portal = portalMap[Portal(ray.mapX, ray.mapY, ray.wallHitDirection)] ?: return null
         // Below here means the ray hit a portal wall
 
-        // Portals share the same wall (no rotation, just flipping)
-        val isMirrorPortal = ray.wallHitDirection == portal.direction
-
         // If we need to rotate (its not a mirror) the ammount of degrees we need to rotate
         var rotateRayDeg = Direction.degreeRelationship(ray.wallHitDirection, portal.direction)
 
@@ -240,41 +227,37 @@ class Game(val buffer: IntArray,
         var xOffset = prevOrigin.x - ray.mapX
         var yOffset = prevOrigin.y - ray.mapY
 
-        // if its not a mirror, rotate the ray wallHitDirection
-        if (!isMirrorPortal) rayDirection.rotate(rotateRayDeg)
+
+        var xPortalOffset = portal.mapX - ray.mapX
+        var yPortalOffset = portal.mapY - ray.mapY
+
 
         // if a portal hits a wall on the south side (example), we need to correct the exit coordinates to cast the ray from the north side
         // so the player can pass though the portal block
         var xWallCorrect = if (ray.side == 0) ray.stepX else 0
         var yWallCorrect = if (ray.side == 1) ray.stepY else 0
 
-        // If the ray has to make a 90 degree rotation or is mirrored, we need to wall correct by 2 blocks
-        if (Math.abs(rotateRayDeg) != 0.0 || ray.wallHitDirection == portal.direction) {
-            xWallCorrect *= 2
-            yWallCorrect *= 2
-        }
-
         // find the origin and wall offset
         var origin = Vector(xOffset + xWallCorrect,
                             yOffset + yWallCorrect)
 
-        // rotate it and offset it from the portal coords
-        if (!isMirrorPortal) origin.rotate(rotateRayDeg)
+        // rotate the origin in relation to the portal
+        origin.rotate(rotateRayDeg)
+
+        // offset the portal by one block depending on how much it rotates
+        if (rotateRayDeg == 180.0) {
+            origin.x += 1
+            origin.y += 1
+        } else if (rotateRayDeg == 90.0) {
+            origin.x += 1
+        } else if (rotateRayDeg == -90.0) {
+            origin.y += 1
+        }
+
         origin.x += portal.mapX
         origin.y += portal.mapY
 
-        // Perform mirroring if its a mirror portal
-        if (isMirrorPortal) {
-            if (ray.side == 0) {
-                rayDirection.mirrorX()
-                origin.mirrorX()
-            } else {
-                rayDirection.mirrorY()
-                origin.mirrorY()
-            }
-        }
-
-        return cast(rayDirection, origin, portal.mapX, portal.mapY)
+        return cast(rayDirection.rotate(rotateRayDeg), origin, portal.mapX, portal.mapY)
     }
 
 

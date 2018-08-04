@@ -1,0 +1,47 @@
+#
+# A fatal error has been detected by the Java Runtime Environment:
+#
+#  EXCEPTION_ACCESS_VIOLATION (0xc0000005) at pc=0x000001de4781a1eb, pid=3828, tid=8880
+#
+# JRE version: Java(TM) SE Runtime Environment (10.0.2+13) (build 10.0.2+13)
+# Java VM: Java HotSpot(TM) 64-Bit Server VM (10.0.2+13, mixed mode, tiered, compressed oops, g1 gc, windows-amd64)
+# Problematic frame:
+# j  Game.cast(LVector;LVector;II)LRay;+140
+#
+# No core dump will be written. Minidumps are not enabled by default on client versions of Windows
+#
+# If you would like to submit a bug report, please visit:
+#   http://bugreport.java.com/bugreport/crash.jsp
+#
+
+---------------  S U M M A R Y ------------
+
+Command Line: -agentlib:jdwp=transport=dt_socket,address=127.0.0.1:61570,suspend=y,server=n -javaagent:C:\Users\BRIANF~1\AppData\Local\Temp\captureAgent1210jars\debugger-agent.jar=file:/C:/Users/BRIANF~1/AppData/Local/Temp/capture.props -Dfile.encoding=UTF-8 MainKt
+
+Host: Intel(R) Core(TM) i7-4790K CPU @ 4.00GHz, 8 cores, 15G,  Windows 10 , 64 bit Build 17134 (10.0.17134.1)
+Time: Sat Aug 04 11:50:24 2018 Eastern Daylight Time elapsed time: 437 seconds (0d 0h 7m 17s)
+
+---------------  T H R E A D  ---------------
+
+Current thread (0x000001de659f7000):  JavaThread "Thread-0" daemon [_thread_in_Java, id=8880, stack(0x0000002147400000,0x0000002147500000)]
+
+Stack: [0x0000002147400000,0x0000002147500000],  sp=0x00000021474fef80,  free space=1019k
+Native frames: (J=compiled Java code, j=interpreted, Vv=VM code, C=native code)
+C  0x000001de4781a1eb
+
+
+siginfo: EXCEPTION_ACCESS_VIOLATION (0xc0000005), reading address 0x00000007f988a12c
+
+
+Register to memory mapping:
+
+RIP=0x000001de4781a1eb is at code_begin+11 in an Interpreter codelet
+aaload  50 aaload  [0x000001de4781a1e0, 0x000001de4781a220]  64 bytes
+RAX=0x0000000000000007 is an unknown value
+RBX=0x0000000000000032 is an unknown value
+RCX=0x000001de6e9e3ea8 is pointing into metadata
+RDX=0x00000007f988a120 is an unknown value
+RSP=0x00000021474fef80 is pointing into the stack for thread: 0x000001de659f7000
+RBP=0x00000021474fefc8 is pointing into the stack for thread: 0x000001de659f7000
+RSI=0x000001de637ac448 is pointing into metadata
+RDI=
