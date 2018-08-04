@@ -1,44 +1,6 @@
 import java.util.*
 
-enum class Direction {
-    NORTH,
-    SOUTH,
-    WEST,
-    EAST;
 
-    companion object {
-        private val directionMap = hashMapOf(
-                NORTH to 1,
-                EAST to 2,
-                SOUTH to 3,
-                WEST to 4
-        )
-
-        fun degreeRelationship(first: Direction, second: Direction): Double {
-            if (first == second) return 180.0
-            val firstVal = directionMap[first] ?: return 0.0
-            val secondVal = directionMap[second] ?: return 0.0
-            val diff = firstVal - secondVal
-            if (diff == -1 || diff == -3) {
-                return 90.0
-            } else if (diff == 1 || diff == 3) {
-                return -90.0
-            }
-            return 0.0
-        }
-    }
-}
-
-
-class Ray(var mapX: Int,
-          var mapY: Int,
-          var stepX: Int,
-          var stepY: Int,
-          var distance: Double,
-          var side: Int,
-          var origin: Vector,
-          var wallHitDirection: Direction
-)
 class Portal(var mapX: Int, var mapY: Int, var direction: Direction) {
     override fun hashCode(): Int {
         return Objects.hash(mapX, mapY, direction)
@@ -49,38 +11,13 @@ class Portal(var mapX: Int, var mapY: Int, var direction: Direction) {
     }
 }
 
-class Vector(var x: Double, var y: Double) {
-    fun rotate(degrees: Double): Vector {
-        val rotRad = Math.toRadians(degrees)
-        val oldX = x
-        x = x * Math.cos(rotRad) - y * Math.sin(rotRad)
-        y = oldX * Math.sin(rotRad) + y * Math.cos(rotRad)
-        return this
-    }
-
-    fun mirrorX(): Vector {
-        x *= -1
-        return this
-    }
-
-    fun mirrorY(): Vector {
-        y *= -1
-        return this
-    }
-
-    fun copy(): Vector {
-        return Vector(x, y)
-    }
-}
-
-
 class Player(var position: Vector,
              var direction: Vector,
              var camPlane: Vector,
              val map: Array<IntArray>,
              val portalMap: HashMap<Portal, Portal>) {
 
-    val hitBox = 10
+    val hitBox = 0
 
     val mapPosX: Int
         get() = position.x.toInt()
@@ -98,14 +35,74 @@ class Player(var position: Vector,
         val newX = position.x + direction.x * speed
         val newY = position.y + direction.y * speed
 
+        val xDir = newX.toInt() - mapPosX
+        val yDir = newY.toInt() - mapPosY
 
-       // val portal = portalMap[Portal(newX.toInt(), newY.toInt(), ray.wallHitDirection)] ?: return ray
+        var cardinalDirection: Direction? = null
+        when {
+            xDir < 0 -> cardinalDirection = Direction.SOUTH
+            xDir > 0 -> cardinalDirection = Direction.NORTH
+            yDir < 0 -> cardinalDirection = Direction.EAST
+            yDir > 0 -> cardinalDirection = Direction.WEST
+        }
 
-        if(map[(position.x + direction.x * speed * hitBox).toInt()][mapPosY] == 0) position.x += direction.x * speed
-        if(map[mapPosX][(position.y + direction.y * speed * hitBox).toInt()] == 0) position.y += direction.y * speed
+        val enterX = newX.toInt()
+        val enterY = newY.toInt()
+
+        if (cardinalDirection != null) {
+            val portal = portalMap[Portal(enterX, enterY, cardinalDirection)]
+            if (portal != null) {
+                var xOffset = newX - newX.toInt()
+                var yOffset = newY - newY.toInt()
+
+                // egress offset
+                if (portal.direction == Direction.NORTH) {
+                    xOffset -= 1
+                } else if (portal.direction == Direction.SOUTH) {
+                    xOffset += 1
+                } else if (portal.direction == Direction.EAST) {
+                    yOffset -= 1
+                } else if (portal.direction == Direction.WEST) {
+                    yOffset += 1
+                }
+
+                val isMirrorPortal = cardinalDirection == portal.direction
+                var rotateRayDeg = Direction.degreeRelationship(cardinalDirection, portal.direction)
+                
+                val newPos = Vector(xOffset, yOffset).rotate(rotateRayDeg)
+
+                position.x = portal.mapX + newPos.x
+                position.y = portal.mapY + newPos.y
+
+
+
+                // not tested
+                if (isMirrorPortal) {
+                    if (cardinalDirection == Direction.EAST || cardinalDirection == Direction.WEST) {
+                        direction.mirrorX()
+                        camPlane.mirrorX()
+                    } else {
+                        direction.mirrorY()
+                        camPlane.mirrorY()
+                    }
+                    return
+                }
+
+                direction.rotate(rotateRayDeg)
+                camPlane.rotate(rotateRayDeg)
+                return
+            }
+        }
+
+        moveWithBoundsCheck(speed)
+    }
+
+    private fun moveWithBoundsCheck(speed: Double) {
+        //println("x $mapPosX y $mapPosY")
+        if (map[(position.x + direction.x * speed * hitBox).toInt()][mapPosY] == 0) position.x += direction.x * speed
+        if (map[mapPosX][(position.y + direction.y * speed * hitBox).toInt()] == 0) position.y += direction.y * speed
     }
 }
-
 
 class Game(val buffer: IntArray,
            val width: Int,
@@ -134,7 +131,7 @@ class Game(val buffer: IntArray,
     val portalMap = HashMap<Portal, Portal>()
 
     val player = Player(
-            Vector(2.0, 2.0),
+            Vector(1.5, 2.5),
             Vector(-1.0, 0.0),
             Vector(0.0, 0.66),
             map,

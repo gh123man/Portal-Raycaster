@@ -37,6 +37,9 @@ constructor() : JFrame(), Runnable, KeyListener {
     val targetWidth = 800
     val targetHeight = 600
 
+    var move = 0.0
+    var turn = 0.0
+
     init {
 
         addKeyListener(this)
@@ -88,6 +91,8 @@ constructor() : JFrame(), Runnable, KeyListener {
 
             frame.graphics.clearRect(0, 0, width, height)
             tick ++
+            game.player.move(move)
+            game.player.rotate(turn)
             game.tick(tick)
 
             drawFrame()
@@ -147,23 +152,40 @@ constructor() : JFrame(), Runnable, KeyListener {
 
     override fun keyPressed(e: KeyEvent) {
         if (e.keyCode == KeyEvent.VK_W) {
-            game.player.move(0.1)
+            move = 0.05
         }
 
         if (e.keyCode == KeyEvent.VK_S) {
-            game.player.move(-0.1)
+            move = -0.05
         }
 
         if (e.keyCode == KeyEvent.VK_A) {
-            game.player.rotate(5.0)
+            turn = 2.0
         }
 
         if (e.keyCode == KeyEvent.VK_D) {
-            game.player.rotate(-5.0)
+            turn = -2.0
         }
     }
 
     override fun keyReleased(e: KeyEvent?) {
+        if (e == null) return
+
+        if (e.keyCode == KeyEvent.VK_W) {
+            move = 0.0
+        }
+
+        if (e.keyCode == KeyEvent.VK_S) {
+            move = 0.0
+        }
+
+        if (e.keyCode == KeyEvent.VK_A) {
+            turn = 0.0
+        }
+
+        if (e.keyCode == KeyEvent.VK_D) {
+            turn = 0.0
+        }
     }
 
 
