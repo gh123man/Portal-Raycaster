@@ -26,10 +26,9 @@ class Portal(var mapX: Int, var mapY: Int, var direction: Direction) {
 class Player(var position: Vector,
              var direction: Vector,
              var camPlane: Vector,
-             val map: Array<IntArray>,
-             val portalMap: HashMap<Portal, Portal>) {
+             var game: Game) {
 
-    val hitBox = 0
+    val hitBox = 8
 
     val mapPosX: Int
         get() = position.x.toInt()
@@ -38,64 +37,98 @@ class Player(var position: Vector,
         get() = position.y.toInt()
 
     fun rotate(degrees: Double) {
+        if (degrees == 0.0) return
         direction.rotate(degrees)
         camPlane.rotate(degrees)
     }
 
     fun move(speed: Double) {
-        // 12 is the hitbox size
-        val newX = position.x + direction.x * speed
-        val newY = position.y + direction.y * speed
+        if (speed == 0.0) return
 
-        val xDir = newX.toInt() - mapPosX
-        val yDir = newY.toInt() - mapPosY
+        var nextPos = newPosition(speed)
+        val directionMoved = directionMoved(nextPos)
 
-        var cardinalDirection: Direction? = null
-        when {
-            xDir < 0 -> cardinalDirection = Direction.SOUTH
-            xDir > 0 -> cardinalDirection = Direction.NORTH
-            yDir < 0 -> cardinalDirection = Direction.EAST
-            yDir > 0 -> cardinalDirection = Direction.WEST
-        }
-
-        val enterX = newX.toInt()
-        val enterY = newY.toInt()
-
-        if (cardinalDirection != null) {
-            val portal = portalMap[Portal(enterX, enterY, cardinalDirection)]
+        if (directionMoved != null) {
+            val portal = game.portalMap[Portal(nextPos.x.toInt(), nextPos.y.toInt(), directionMoved)]
             if (portal != null) {
-
-                /*
-                1. Move the player to the new position
-                2. rotate the position vector for the block the player is in
-                3. offset by the block value in the direction you are walking
-                4. apply the requested movement
-                 */
-
-                val playerOffsetVector = Vector(position.x - mapPosX,
-                                                position.y - mapPosY)
-                var rotateRayDeg = Direction.degreeRelationship(cardinalDirection, portal.direction)
-
-                val mapOffsetVector = Vector(0.0, 0.0)
-                Portal.displaceVectorForRotation(mapOffsetVector, rotateRayDeg)
-
-                direction.rotate(rotateRayDeg)
-                camPlane.rotate(rotateRayDeg)
-                playerOffsetVector.rotate(rotateRayDeg)
-
-                position.x = portal.mapX + playerOffsetVector.x + mapOffsetVector.x + direction.x * speed
-                position.y = portal.mapY + playerOffsetVector.y + mapOffsetVector.y + direction.y * speed
+                walkThroughPortal(portal, directionMoved, speed)
                 return
             }
+        }
+
+        // the player did not walk through a portal, but if they are walking near one we want to let them get closer
+        // than the hitbox allows
+        val nexPosWithBounds = newPosition(speed * hitBox)
+        val directionMovedWithBounds = directionMoved(nexPosWithBounds)
+        if (directionMovedWithBounds != null) {
+            var moved = false
+            var portal = game.portalMap[Portal(nexPosWithBounds.x.toInt(), mapPosY, directionMovedWithBounds)]
+            if (portal != null) {
+                position.x = nextPos.x
+                moved = true
+            }
+
+            portal = game.portalMap[Portal(mapPosX, nexPosWithBounds.y.toInt(), directionMovedWithBounds)]
+            if (portal != null) {
+                position.y = nextPos.y
+                moved = true
+            }
+
+            if (moved) return
         }
 
         moveWithBoundsCheck(speed)
     }
 
     private fun moveWithBoundsCheck(speed: Double) {
-        //println("x $mapPosX y $mapPosY")
-        if (map[(position.x + direction.x * speed * hitBox).toInt()][mapPosY] == 0) position.x += direction.x * speed
-        if (map[mapPosX][(position.y + direction.y * speed * hitBox).toInt()] == 0) position.y += direction.y * speed
+        if (game.map[(position.x + direction.x * speed * hitBox).toInt()][mapPosY] == 0) position.x += direction.x * speed
+        if (game.map[mapPosX][(position.y + direction.y * speed * hitBox).toInt()] == 0) position.y += direction.y * speed
+    }
+
+    private fun newPosition(speed: Double): Vector {
+        return Vector(position.x + direction.x * speed,
+                      position.y + direction.y * speed)
+    }
+
+    private fun directionMoved(pos: Vector): Direction? {
+        val xDir = pos.x.toInt() - mapPosX
+        val yDir = pos.y.toInt() - mapPosY
+
+        when {
+            xDir < 0 -> return Direction.SOUTH
+            xDir > 0 -> return Direction.NORTH
+            yDir < 0 -> return Direction.EAST
+            yDir > 0 -> return Direction.WEST
+        }
+        return null
+    }
+
+    private fun walkThroughPortal(portal: Portal, directionMoved: Direction, speed: Double) {
+        /*
+           1. Move the player to the new position
+           2. rotate the position vector for the block the player is in
+           3. offset by the block value in the direction you are walking
+           4. apply the requested movement
+        */
+
+        val playerOffsetVector = Vector(position.x - mapPosX,
+                                        position.y - mapPosY)
+        var rotateRayDeg = Direction.degreeRelationship(directionMoved, portal.direction)
+
+        val mapOffsetVector = Vector(0.0, 0.0)
+        Portal.displaceVectorForRotation(mapOffsetVector, rotateRayDeg)
+
+        direction.rotate(rotateRayDeg)
+        camPlane.rotate(rotateRayDeg)
+        playerOffsetVector.rotate(rotateRayDeg)
+
+        var newX = portal.mapX + playerOffsetVector.x + mapOffsetVector.x + direction.x * speed
+        var newY = portal.mapY + playerOffsetVector.y + mapOffsetVector.y + direction.y * speed
+
+        if (game.map[newX.toInt()][mapPosY] == 0) position.x = newX
+        if (game.map[mapPosX][newY.toInt()] == 0) position.y = newY
+
+
     }
 }
 
@@ -129,8 +162,7 @@ class Game(val buffer: IntArray,
             Vector(1.5, 2.5),
             Vector(-1.0, 0.0),
             Vector(0.0, 0.66),
-            map,
-            portalMap
+            this
     )
 
     init {
@@ -163,7 +195,10 @@ class Game(val buffer: IntArray,
             var shade = 0
             var intensity = if (ray.side == 0) 255 else 150
 
-           // intensity -= (ray.distance * 8).toInt()
+            intensity -= (ray.distance * 2).toInt()
+            if (intensity < 0) {
+                intensity = 0
+            }
 
             if (ray.wallHitDirection == Direction.NORTH) {
                 shade = color(0, 0, intensity)
@@ -322,5 +357,4 @@ class Game(val buffer: IntArray,
 
         return Ray(mapX, mapY, stepX, stepY, perpWallDist, side, origin, wallHitDirection)
     }
-
 }

@@ -145,8 +145,6 @@ constructor() : JFrame(), Runnable, KeyListener {
         */
     }
 
-
-
     override fun keyTyped(e: KeyEvent?) {
     }
 
