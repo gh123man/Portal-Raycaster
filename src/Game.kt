@@ -157,6 +157,7 @@ class Game(val buffer: IntArray,
            val width: Int,
            val height: Int) {
 
+
     val map = arrayOf(
 
             // X goes down y goes across
@@ -195,7 +196,10 @@ class Game(val buffer: IntArray,
 
     fun tick(frame: Int) {
 
+
         for (x in 0..width) {
+           // paintLine(x, 0, height - 1, 0)
+
             val rays = castRay(x)
             val lastRay = rays.last()
 
@@ -219,14 +223,25 @@ class Game(val buffer: IntArray,
 
             var (drawStart, drawEnd) = calcDrawStartEnd(lastRay)
             paintLine(x, drawStart, drawEnd, shade)
-            paintFloor(lastRay, x, drawEnd, height)
-            /*
-            for (ray in rays.reversed()) {
-                var (newStart, newEnd) = calcDrawStartEnd(ray)
-                paintFloor(ray, x, newEnd, drawEnd)
-                drawEnd = newEnd
+
+            // Reverse the list so start with the furthest away ray
+            val reversedRays = rays.reversed()
+            for (i in reversedRays.indices) {
+
+                val first = reversedRays[i]
+                val second = reversedRays.getOrElse(i + 1) {
+                    lastRay
+                }
+
+                val (_, firstDrawEnd) = calcDrawStartEnd(first)
+                var (_, secondDrawEnd) = calcDrawStartEnd(second)
+
+                if (second == lastRay) {
+                    secondDrawEnd = height
+                }
+
+                paintFloor(first, x, firstDrawEnd, secondDrawEnd)
             }
-            */
         }
     }
 
@@ -261,7 +276,7 @@ class Game(val buffer: IntArray,
         val rayDirection = Vector(player.direction.x + player.camPlane.x * camX, player.direction.y + player.camPlane.y * camX)
 
         var ray = castWall(rayDirection, Vector(player.position.x, player.position.y), player.mapPosX, player.mapPosY)
-        var rays = arrayListOf<Ray>(ray)
+        var rays = arrayListOf(ray)
 
         // TODO: Cap this?
         while (true) {
@@ -275,7 +290,7 @@ class Game(val buffer: IntArray,
     }
 
     fun castPortalRay(ray: Ray): Ray? {
-        val prevOrigin = ray.origin // Maybe copy here?
+        val prevOrigin = ray.origin.copy()
         val portal = portalManager.getPortal(ray.mapX, ray.mapY, ray.wallHitDirection) ?: return null
         // Below here means the ray hit a portal wall
 
@@ -303,7 +318,7 @@ class Game(val buffer: IntArray,
         origin.x += portal.mapX
         origin.y += portal.mapY
 
-        return castWall(ray.direction.rotate(rotateRayDeg), origin, portal.mapX, portal.mapY)
+        return castWall(ray.direction.copy().rotate(rotateRayDeg), origin, portal.mapX, portal.mapY)
     }
 
 
@@ -385,7 +400,7 @@ class Game(val buffer: IntArray,
         return Ray(mapX, mapY, stepX, stepY, perpWallDist, side, wallX, origin, rayDirection, wallHitDirection)
     }
 
-    fun paintFloor(ray: Ray, x: Int, wallDrawEnd: Int, stopHeight: Int) {
+    fun  paintFloor(ray: Ray, x: Int, wallDrawEnd: Int, stopHeight: Int) {
         var floorXWall = 0.0
         var floorYWall = 0.0
 
@@ -409,8 +424,8 @@ class Game(val buffer: IntArray,
         var drawEnd = wallDrawEnd
         if (drawEnd < 0) drawEnd = stopHeight
 
-        for (y in drawEnd..stopHeight - 2) {
-            currentDist = stopHeight / (2.0 * y - stopHeight)
+        for (y in drawEnd+1..stopHeight - 2) {
+            currentDist = height / (2.0 * y - height)
 
             var weight = currentDist / distWall
 
@@ -428,7 +443,7 @@ class Game(val buffer: IntArray,
             else ceilingColor = color(226, 226, 226)
 
             buffer[y * width + x] = floorColor
-            buffer[(stopHeight - y) * width + x] = ceilingColor
+            buffer[(height - y) * width + x] = ceilingColor
 
         }
     }
