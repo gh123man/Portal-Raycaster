@@ -198,7 +198,7 @@ class Game(val buffer: IntArray,
 
 
         for (x in 0..width) {
-           // paintLine(x, 0, height - 1, 0)
+           //paintLine(x, 0, height - 1, 0)
 
             val rays = castRay(x)
             val lastRay = rays.last()
@@ -237,7 +237,7 @@ class Game(val buffer: IntArray,
                 var (_, secondDrawEnd) = calcDrawStartEnd(second)
 
                 if (second == lastRay) {
-                    secondDrawEnd = height
+                    secondDrawEnd = height - 1
                 }
 
                 paintFloor(first, x, firstDrawEnd, secondDrawEnd)
@@ -250,7 +250,7 @@ class Game(val buffer: IntArray,
         var drawStart = -(wallHeight / 2) + (height / 2)
         if (drawStart < 0) drawStart = 0
 
-        var drawEnd = (wallHeight / 2) + (height / 2)
+        var drawEnd = (wallHeight / 2) + (height / 2) + 1
         if (drawEnd >= height) drawEnd = height - 1
         return Pair(drawStart, drawEnd)
     }
@@ -424,7 +424,7 @@ class Game(val buffer: IntArray,
         var drawEnd = wallDrawEnd
         if (drawEnd < 0) drawEnd = stopHeight
 
-        for (y in drawEnd+1..stopHeight - 2) {
+        for (y in drawEnd..stopHeight - 1) {
             currentDist = height / (2.0 * y - height)
 
             var weight = currentDist / distWall
@@ -442,7 +442,7 @@ class Game(val buffer: IntArray,
             if(checkerBoardPattern == 0) ceilingColor =  color(119, 119, 119)
             else ceilingColor = color(226, 226, 226)
 
-            buffer[y * width + x] = floorColor
+            buffer[(y * width + x)] = floorColor
             buffer[(height - y) * width + x] = ceilingColor
 
         }
