@@ -29,7 +29,7 @@ class Player(var position: Vector,
              var camPlane: Vector,
              var game: Game) {
 
-    val hitBox = 8
+    val hitBox = 2 // bigger causes issues???
 
     val mapPosX: Int
         get() = position.x.toInt()
@@ -119,8 +119,12 @@ class Player(var position: Vector,
         val mapOffsetVector = Vector(0.0, 0.0)
         Portal.displaceVectorForRotation(mapOffsetVector, rotateRayDeg)
 
+        val thread = Thread.currentThread().getId()
+        println("PORTAL from direction: $direction)\t cam: $camPlane\t port: $portal\t th: $thread")
+
         direction.rotate(rotateRayDeg)
         camPlane.rotate(rotateRayDeg)
+        println("PORTAL to direction: $direction)\t cam: $camPlane\t port: $portal\t th: $thread")
         playerOffsetVector.rotate(rotateRayDeg)
 
         var newX = portal.mapX + playerOffsetVector.x + mapOffsetVector.x + direction.x * speed
@@ -212,13 +216,13 @@ class Game(val buffer: IntArray,
             }
 
             if (lastRay.wallHitDirection == Direction.NORTH) {
-                shade = color(0, 0, intensity)
+                shade = Color.color(0, 0, intensity)
             } else if (lastRay.wallHitDirection == Direction.SOUTH) {
-                shade = color(0, intensity, 0)
+                shade = Color.color(0, intensity, 0)
             } else if (lastRay.wallHitDirection == Direction.EAST) {
-                shade = color(intensity, 0, 0)
+                shade = Color.color(intensity, 0, 0)
             } else {
-                shade = color(0, intensity, intensity)
+                shade = Color.color(0, intensity, intensity)
             }
 
             var (drawStart, drawEnd) = calcDrawStartEnd(lastRay)
@@ -256,19 +260,16 @@ class Game(val buffer: IntArray,
     }
 
     fun paintLine(x: Int, start: Int, end: Int, color: Int) {
+//        var shadePx = 16 + start
         for (y in start..end - 1) {
+            // Shading testing
+//            if (y < shadePx) {
+//                buffer[y * width + x] = Color.darken(color, (start - shadePx) * -1)
+//                shadePx --
+//                continue
+//            }
             buffer[y * width + x] = color
         }
-    }
-
-    fun color(Red: Int, Green: Int, Blue: Int): Int {
-        var Red = Red
-        var Green = Green
-        var Blue = Blue
-        Red = Red shl 16 and 0x00FF0000 //Shift red 16-bits and mask out other stuff
-        Green = Green shl 8 and 0x0000FF00 //Shift Green 8-bits and mask out other stuff
-        Blue = Blue and 0x000000FF //Mask out anything not blue.
-        return -0x1000000 or Red or Green or Blue //0xFF000000 for 100% Alpha. Bitwise OR everything together.
     }
 
     fun castRay(x: Int): List<Ray> {
@@ -435,12 +436,12 @@ class Game(val buffer: IntArray,
             var checkerBoardPattern = ((currentFloorX).toInt() + (currentFloorY).toInt()) % 2
 
             var floorColor = 0
-            if(checkerBoardPattern == 0) floorColor = color(119, 119, 119)
-            else floorColor = color(51, 51, 51)
+            if(checkerBoardPattern == 0) floorColor = Color.color(119, 119, 119)
+            else floorColor = Color.color(51, 51, 51)
 
             var ceilingColor  = 0
-            if(checkerBoardPattern == 0) ceilingColor =  color(119, 119, 119)
-            else ceilingColor = color(226, 226, 226)
+            if(checkerBoardPattern == 0) ceilingColor =  Color.color(119, 119, 119)
+            else ceilingColor = Color.color(226, 226, 226)
 
             buffer[(y * width + x)] = floorColor
             buffer[(height - y) * width + x] = ceilingColor

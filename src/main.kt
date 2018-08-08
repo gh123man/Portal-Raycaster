@@ -37,8 +37,8 @@ constructor() : JFrame(), Runnable, KeyListener {
     val targetWidth = 800
     val targetHeight = 600
 
-    var move = 0.0
-    var turn = 0.0
+    @Volatile var move = 0.0
+    @Volatile var turn = 0.0
 
     init {
 
