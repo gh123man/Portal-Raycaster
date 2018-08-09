@@ -23,16 +23,17 @@ class PortalManager {
 
 class Game(private val renderUtil: RenderUtil) {
 
+    private val maxPortalDepth = 100
 
     val map = arrayOf(
 
             // X goes down y goes across
             intArrayOf(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
-            intArrayOf(1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 2, 1),
             intArrayOf(1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1),
             intArrayOf(1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1),
             intArrayOf(1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1),
-            intArrayOf(1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 2, 1, 0, 1, 1),
+            intArrayOf(1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1),
+            intArrayOf(1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 2, 0, 1, 1, 1),
             intArrayOf(1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1),
             intArrayOf(1, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1),
             intArrayOf(1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1),
@@ -54,7 +55,8 @@ class Game(private val renderUtil: RenderUtil) {
     val portalManager = PortalManager()
 
     init {
-        portalManager.addPortal(0, 4, Direction.SOUTH, 5, 10, Direction.NORTH)
+        portalManager.addPortal(0, 13, Direction.SOUTH, 5, 13, Direction.NORTH)
+        portalManager.addPortal(0, 4, Direction.SOUTH, 5, 9, Direction.NORTH)
         portalManager.addPortal(5, 0, Direction.EAST, 7, 0, Direction.EAST)
         portalManager.addPortal(14, 5, Direction.NORTH, 14, 6, Direction.NORTH)
         portalManager.addPortal(0, 2, Direction.SOUTH, 3, 0, Direction.EAST)
@@ -74,15 +76,15 @@ class Game(private val renderUtil: RenderUtil) {
         var ray = castWall(rayDirection, Vector(player.position.x, player.position.y), player.mapPosX, player.mapPosY)
         var rays = arrayListOf(ray)
 
-        // TODO: Cap this?
-        while (true) {
+        while (rays.count() < maxPortalDepth) {
             var newRay = castPortalRay(rays.last())
             if (newRay == null) {
-                return rays
+                break
             } else {
                 rays.add(newRay)
             }
         }
+        return rays
     }
 
     private fun castPortalRay(wallRay: Ray): Ray? {
