@@ -1,142 +1,12 @@
 import java.util.*
 import kotlin.collections.HashMap
 
-class Portal(var mapX: Int, var mapY: Int, var direction: Direction) {
-    override fun hashCode(): Int {
-        return Objects.hash(mapX, mapY, direction)
-    }
 
-    override fun equals(other: Any?): Boolean {
-        return other?.hashCode() == hashCode()
-    }
-
-    companion object {
-        fun displaceVectorForRotation(v: Vector, cardinalRotation: Double) {
-            if (cardinalRotation == 180.0) {
-                v.x += 1
-                v.y += 1
-            } else if (cardinalRotation == 90.0) {
-                v.x += 1
-            } else if (cardinalRotation == -90.0) {
-                v.y += 1
-            }
-        }
-    }
-}
-
-class Player(var position: Vector,
-             var direction: Vector,
-             var camPlane: Vector,
-             var game: Game) {
-
-    val hitBox = 2 // bigger causes issues???
-
-    val mapPosX: Int
-        get() = position.x.toInt()
-
-    val mapPosY: Int
-        get() = position.y.toInt()
-
-    fun rotate(degrees: Double) {
-        if (degrees == 0.0) return
-        direction.rotate(degrees)
-        camPlane.rotate(degrees)
-    }
-
-    fun move(speed: Double) {
-        if (speed == 0.0) return
-
-        var nextPos = newPosition(speed)
-        val directionMoved = directionMoved(nextPos)
-
-        if (directionMoved != null) {
-            val portal = game.portalManager.getPortal(nextPos.x.toInt(), nextPos.y.toInt(), directionMoved)
-            if (portal != null) {
-                walkThroughPortal(portal, directionMoved, speed)
-                return
-            }
-        }
-
-        // the player did not walk through a portal, but if they are walking near one we want to let them get closer
-        // than the hitbox allows
-        val nexPosWithBounds = newPosition(speed * hitBox)
-        val directionMovedWithBounds = directionMoved(nexPosWithBounds)
-        if (directionMovedWithBounds != null) {
-            var moved = false
-            var portal = game.portalManager.getPortal(nexPosWithBounds.x.toInt(), mapPosY, directionMovedWithBounds)
-            if (portal != null) {
-                position.x = nextPos.x
-                moved = true
-            }
-
-            portal = game.portalManager.getPortal(mapPosX, nexPosWithBounds.y.toInt(), directionMovedWithBounds)
-            if (portal != null) {
-                position.y = nextPos.y
-                moved = true
-            }
-
-            if (moved) return
-        }
-
-        moveWithBoundsCheck(speed)
-    }
-
-    private fun moveWithBoundsCheck(speed: Double) {
-        if (game.map[(position.x + direction.x * speed * hitBox).toInt()][mapPosY] == 0) position.x += direction.x * speed
-        if (game.map[mapPosX][(position.y + direction.y * speed * hitBox).toInt()] == 0) position.y += direction.y * speed
-    }
-
-    private fun newPosition(speed: Double): Vector {
-        return Vector(position.x + direction.x * speed,
-                      position.y + direction.y * speed)
-    }
-
-    private fun directionMoved(pos: Vector): Direction? {
-        val xDir = pos.x.toInt() - mapPosX
-        val yDir = pos.y.toInt() - mapPosY
-
-        when {
-            xDir < 0 -> return Direction.SOUTH
-            xDir > 0 -> return Direction.NORTH
-            yDir < 0 -> return Direction.EAST
-            yDir > 0 -> return Direction.WEST
-        }
-        return null
-    }
-
-    private fun walkThroughPortal(portal: Portal, directionMoved: Direction, speed: Double) {
-        /*
-           1. Move the player to the new position
-           2. rotate the position vector for the block the player is in
-           3. offset by the block value in the direction you are walking
-           4. apply the requested movement
-        */
-
-        val playerOffsetVector = Vector(position.x - mapPosX,
-                                        position.y - mapPosY)
-        var rotateRayDeg = Direction.degreeRelationship(directionMoved, portal.direction)
-
-        val mapOffsetVector = Vector(0.0, 0.0)
-        Portal.displaceVectorForRotation(mapOffsetVector, rotateRayDeg)
-
-        direction.rotate(rotateRayDeg)
-        camPlane.rotate(rotateRayDeg)
-        playerOffsetVector.rotate(rotateRayDeg)
-
-        var newX = portal.mapX + playerOffsetVector.x + mapOffsetVector.x + direction.x * speed
-        var newY = portal.mapY + playerOffsetVector.y + mapOffsetVector.y + direction.y * speed
-
-        if (game.map[newX.toInt()][mapPosY] == 0) position.x = newX
-        if (game.map[mapPosX][newY.toInt()] == 0) position.y = newY
-
-
-    }
-}
 
 class PortalManager {
 
-    val portalMap = HashMap<Portal, Portal>()
-    val portalLocMap = HashMap<Pair<Int, Int>, Portal>()
+    private val portalMap = HashMap<Portal, Portal>()
+    private val portalLocMap = HashMap<Pair<Int, Int>, Portal>()
 
     fun addPortal(x1: Int, y1: Int, d1: Direction, x2: Int, y2: Int, d2: Direction) {
         val p1 = Portal(x1,y1, d1)
@@ -153,9 +23,7 @@ class PortalManager {
 }
 
 
-class Game(val buffer: IntArray,
-           val width: Int,
-           val height: Int) {
+class Game(private val renderUtil: RenderUtil) {
 
 
     val map = arrayOf(
@@ -197,13 +65,13 @@ class Game(val buffer: IntArray,
     fun tick(frame: Int) {
 
 
-        for (x in 0..width) {
+        for (x in 0..renderUtil.width) {
            //paintLine(x, 0, height - 1, 0)
 
             val rays = castRay(x)
             val lastRay = rays.last()
 
-            var shade = 0
+            var shade: Int
             var intensity = if (lastRay.side == 0) 255 else 150
 
             intensity -= (lastRay.distance * 2).toInt()
@@ -221,8 +89,8 @@ class Game(val buffer: IntArray,
                 shade = Color.color(0, intensity, intensity)
             }
 
-            var (drawStart, drawEnd) = calcDrawStartEnd(lastRay)
-            paintLine(x, drawStart, drawEnd, shade)
+            var (drawStart, drawEnd) = renderUtil.calcDrawStartEnd(lastRay)
+            renderUtil.paintLine(x, drawStart, drawEnd, shade)
 
             // Reverse the list so start with the furthest away ray
             val reversedRays = rays.reversed()
@@ -233,11 +101,11 @@ class Game(val buffer: IntArray,
                     lastRay
                 }
 
-                val (_, firstDrawEnd) = calcDrawStartEnd(first)
-                var (_, secondDrawEnd) = calcDrawStartEnd(second)
+                val (_, firstDrawEnd) = renderUtil.calcDrawStartEnd(first)
+                var (_, secondDrawEnd) = renderUtil.calcDrawStartEnd(second)
 
                 if (second == lastRay) {
-                    secondDrawEnd = height - 1
+                    secondDrawEnd = renderUtil.height - 1
                 }
 
                 paintFloor(first, x, firstDrawEnd, secondDrawEnd)
@@ -245,31 +113,8 @@ class Game(val buffer: IntArray,
         }
     }
 
-    fun calcDrawStartEnd(ray: Ray): Pair<Int, Int> {
-        val wallHeight = (height / ray.distance).toInt()
-        var drawStart = -(wallHeight / 2) + (height / 2)
-        if (drawStart < 0) drawStart = 0
-
-        var drawEnd = (wallHeight / 2) + (height / 2) + 1
-        if (drawEnd >= height) drawEnd = height - 1
-        return Pair(drawStart, drawEnd)
-    }
-
-    fun paintLine(x: Int, start: Int, end: Int, color: Int) {
-//        var shadePx = 16 + start
-        for (y in start..end - 1) {
-            // Shading testing
-//            if (y < shadePx) {
-//                buffer[y * width + x] = Color.darken(color, (start - shadePx) * -1)
-//                shadePx --
-//                continue
-//            }
-            buffer[y * width + x] = color
-        }
-    }
-
-    fun castRay(x: Int): List<Ray> {
-        val camX: Double = 2 * x / width.toDouble() - 1 // x-coordinate in camera space
+    private fun castRay(x: Int): List<Ray> {
+        val camX: Double = 2 * x / renderUtil.width.toDouble() - 1 // x-coordinate in camera space
         val rayDirection = Vector(player.direction.x + player.camPlane.x * camX, player.direction.y + player.camPlane.y * camX)
 
         var ray = castWall(rayDirection, Vector(player.position.x, player.position.y), player.mapPosX, player.mapPosY)
@@ -286,12 +131,12 @@ class Game(val buffer: IntArray,
         }
     }
 
-    fun castPortalRay(ray: Ray): Ray? {
+    private fun castPortalRay(ray: Ray): Ray? {
         val prevOrigin = ray.origin.copy()
         val portal = portalManager.getPortal(ray.mapX, ray.mapY, ray.wallHitDirection) ?: return null
         // Below here means the ray hit a portal wall
 
-        // If we need to rotate (its not a mirror) the ammount of degrees we need to rotate
+        // amount we need to rotate the ray to come out of the exit portal
         var rotateRayDeg = Direction.degreeRelationship(ray.wallHitDirection, portal.direction)
 
         // find the offset of the player from the ray hit destination
@@ -312,14 +157,16 @@ class Game(val buffer: IntArray,
         // offset the portal by one block depending on how much it rotates
         Portal.displaceVectorForRotation(origin, rotateRayDeg)
 
+        // offset the new origin to position it at the exit portal
         origin.x += portal.mapX
         origin.y += portal.mapY
 
+        // rotate the ray direction and cast a new ray
         return castWall(ray.direction.copy().rotate(rotateRayDeg), origin, portal.mapX, portal.mapY)
     }
 
 
-    fun castWall(rayDirection: Vector, origin: Vector, mapXOrigin: Int, mapYOrigin: Int): Ray {
+    private fun castWall(rayDirection: Vector, origin: Vector, mapXOrigin: Int, mapYOrigin: Int): Ray {
 
         var mapX = mapXOrigin
         var mapY = mapYOrigin
@@ -332,8 +179,8 @@ class Game(val buffer: IntArray,
         var deltaDistX = Math.abs(1 / rayDirection.x)
         var deltaDistY = Math.abs(1 / rayDirection.y)
 
-        var stepX = 0
-        var stepY = 0
+        var stepX: Int
+        var stepY: Int
 
         var hit = 0
         var side = 0
@@ -372,34 +219,32 @@ class Game(val buffer: IntArray,
         }
 
         // Get ray len
-        if (side == 0) {
-            perpWallDist = (mapX - origin.x + (1 - stepX) / 2) / rayDirection.x
+        perpWallDist = if (side == 0) {
+            (mapX - origin.x + (1 - stepX) / 2) / rayDirection.x
         } else {
-            perpWallDist = (mapY - origin.y + (1 - stepY) / 2) / rayDirection.y
+            (mapY - origin.y + (1 - stepY) / 2) / rayDirection.y
         }
 
-        var wallHitDirection: Direction
-        if (side == 0 && rayDirection.x >= 0) {
-            wallHitDirection = Direction.NORTH
+        val wallHitDirection = if (side == 0 && rayDirection.x >= 0) {
+            Direction.NORTH
         } else if (side == 0 && rayDirection.x < 0) {
-            wallHitDirection = Direction.SOUTH
+            Direction.SOUTH
         } else if (side == 1 && rayDirection.y >= 0) {
-            wallHitDirection = Direction.WEST
+            Direction.WEST
         } else {
-            wallHitDirection = Direction.EAST
+            Direction.EAST
         }
 
-        var wallX = 0.0
-        if (side == 0) wallX = origin.y + perpWallDist * rayDirection.y
-        else wallX = origin.x + perpWallDist * rayDirection.x
+        var wallX = if (side == 0)  origin.y + perpWallDist * rayDirection.y
+                    else            origin.x + perpWallDist * rayDirection.x
         wallX -= Math.floor(wallX)
 
         return Ray(mapX, mapY, stepX, stepY, perpWallDist, side, wallX, origin, rayDirection, wallHitDirection)
     }
 
-    fun  paintFloor(ray: Ray, x: Int, wallDrawEnd: Int, stopHeight: Int) {
-        var floorXWall = 0.0
-        var floorYWall = 0.0
+    private fun  paintFloor(ray: Ray, x: Int, wallDrawEnd: Int, stopHeight: Int) {
+        var floorXWall: Double
+        var floorYWall: Double
 
         if(ray.side == 0 && ray.direction.x > 0) {
             floorXWall = ray.mapX.toDouble()
@@ -415,32 +260,30 @@ class Game(val buffer: IntArray,
             floorYWall = ray.mapY + 1.0
         }
 
-        var distWall = ray.distance
-        var currentDist = 0.0
+        val distWall = ray.distance
+        var currentDist: Double
 
         var drawEnd = wallDrawEnd
         if (drawEnd < 0) drawEnd = stopHeight
 
-        for (y in drawEnd..stopHeight - 1) {
-            currentDist = height / (2.0 * y - height)
+        for (y in drawEnd until stopHeight) {
+            currentDist = renderUtil.height / (2.0 * y - renderUtil.height)
 
-            var weight = currentDist / distWall
+            val weight = currentDist / distWall
 
-            var currentFloorX = weight * floorXWall + (1.0 - weight) * ray.origin.x
-            var currentFloorY = weight * floorYWall + (1.0 - weight) * ray.origin.y
+            val currentFloorX = weight * floorXWall + (1.0 - weight) * ray.origin.x
+            val currentFloorY = weight * floorYWall + (1.0 - weight) * ray.origin.y
 
-            var checkerBoardPattern = ((currentFloorX).toInt() + (currentFloorY).toInt()) % 2
+            val checkerBoardPattern = ((currentFloorX).toInt() + (currentFloorY).toInt()) % 2
 
-            var floorColor = 0
-            if(checkerBoardPattern == 0) floorColor = Color.color(119, 119, 119)
-            else floorColor = Color.color(51, 51, 51)
+            val floorColor = if(checkerBoardPattern == 0) Color.color(119, 119, 119)
+                             else                         Color.color(51, 51, 51)
 
-            var ceilingColor  = 0
-            if(checkerBoardPattern == 0) ceilingColor =  Color.color(119, 119, 119)
-            else ceilingColor = Color.color(226, 226, 226)
+            val ceilingColor = if(checkerBoardPattern == 0) Color.color(119, 119, 119)
+                               else                         Color.color(226, 226, 226)
 
-            buffer[(y * width + x)] = floorColor
-            buffer[(height - y) * width + x] = ceilingColor
+            renderUtil.buffer[(y * renderUtil.width + x)] = floorColor
+            renderUtil.buffer[(renderUtil.height - y) * renderUtil.width + x] = ceilingColor
 
         }
     }

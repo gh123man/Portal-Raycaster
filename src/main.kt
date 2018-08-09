@@ -48,7 +48,7 @@ constructor() : JFrame(), Runnable, KeyListener {
         frame = BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_RGB)
 
         buffer = (frame.raster.dataBuffer as DataBufferInt).data
-        game = Game(buffer, targetWidth, targetHeight)
+        game = Game(RenderUtil(buffer, targetWidth, targetHeight))
 
 
         setSize(targetWidth, targetHeight)

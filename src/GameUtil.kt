@@ -1,8 +1,4 @@
 
-import java.awt.color.ColorSpace
-import kotlin.reflect.jvm.internal.impl.descriptors.Named
-
-
 enum class Direction {
     NORTH,
     SOUTH,
@@ -77,6 +73,21 @@ data class Vector(var x: Double, var y: Double) {
     fun mirrorY(): Vector {
         y *= -1
         return this
+    }
+}
+
+data class Portal(var mapX: Int, var mapY: Int, var direction: Direction) {
+    companion object {
+        fun displaceVectorForRotation(v: Vector, cardinalRotation: Double) {
+            if (cardinalRotation == 180.0) {
+                v.x += 1
+                v.y += 1
+            } else if (cardinalRotation == 90.0) {
+                v.x += 1
+            } else if (cardinalRotation == -90.0) {
+                v.y += 1
+            }
+        }
     }
 }
 
