@@ -1,3 +1,5 @@
+import kotlin.test.assertFails
+
 class Player(var position: Vector,
              var direction: Vector,
              var camPlane: Vector,
@@ -24,10 +26,9 @@ class Player(var position: Vector,
         val directionMoved = directionMoved(nextPos)
 
         if (directionMoved != null) {
-            val portal = game.portalManager.getPortal(nextPos.x.toInt(), nextPos.y.toInt(), directionMoved)
+            val portal = game.portalManager.getPortal(nextPos.x.toInt(), mapPosY, directionMoved) ?: game.portalManager.getPortal(mapPosX, nextPos.y.toInt(), directionMoved)
             if (portal != null) {
                 walkThroughPortal(portal, directionMoved, speed)
-                return
             }
         }
 
@@ -65,9 +66,9 @@ class Player(var position: Vector,
                 position.y + direction.y * speed)
     }
 
-    private fun directionMoved(pos: Vector): Direction? {
-        val xDir = pos.x.toInt() - mapPosX
-        val yDir = pos.y.toInt() - mapPosY
+    private fun directionMoved(newPosition: Vector): Direction? {
+        val xDir = newPosition.x.toInt() - mapPosX
+        val yDir = newPosition.y.toInt() - mapPosY
 
         when {
             xDir < 0 -> return Direction.SOUTH
@@ -87,7 +88,7 @@ class Player(var position: Vector,
         */
 
         val playerOffsetVector = Vector(position.x - mapPosX,
-                position.y - mapPosY)
+                                        position.y - mapPosY)
         var rotateRayDeg = Direction.degreeRelationship(directionMoved, portal.direction)
 
         val mapOffsetVector = Vector(0.0, 0.0)
