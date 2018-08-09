@@ -37,14 +37,18 @@ class Player(var position: Vector,
         val directionMovedWithBounds = directionMoved(nexPosWithBounds)
         if (directionMovedWithBounds != null) {
             var moved = false
-            var portal = game.portalManager.getPortal(nexPosWithBounds.x.toInt(), mapPosY, directionMovedWithBounds)
-            if (portal != null) {
+            var portalHitBounds = game.portalManager.getPortal(nexPosWithBounds.x.toInt(), mapPosY, directionMovedWithBounds)
+            var portalHit = game.portalManager.getPortal(nextPos.x.toInt(), mapPosY, directionMovedWithBounds)
+            if (portalHitBounds != null && portalHit == null) {
+                println("new x $nextPos")
                 position.x = nextPos.x
                 moved = true
             }
 
-            portal = game.portalManager.getPortal(mapPosX, nexPosWithBounds.y.toInt(), directionMovedWithBounds)
-            if (portal != null) {
+            portalHitBounds = game.portalManager.getPortal(mapPosX, nexPosWithBounds.y.toInt(), directionMovedWithBounds)
+            portalHit = game.portalManager.getPortal(mapPosX, nextPos.y.toInt(), directionMovedWithBounds)
+            if (portalHitBounds != null && portalHit == null) {
+                println("new y $nextPos")
                 position.y = nextPos.y
                 moved = true
             }
