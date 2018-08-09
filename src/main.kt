@@ -24,7 +24,6 @@ constructor() : JFrame(), Runnable, KeyListener {
     private val screen: GraphicsDevice
 
     private var running: Boolean = false
-    private val thread: Thread
     private val frame: BufferedImage
 
     private val windowBarHeight: Int
@@ -63,10 +62,6 @@ constructor() : JFrame(), Runnable, KeyListener {
 
         windowBarHeight = (targetHeight - contentPane.size.getHeight()).toInt()
         setSize(targetWidth, targetHeight + windowBarHeight)
-
-        thread = Thread(this)
-        thread.isDaemon = true
-        thread.start()
     }
 
     override fun run() {
@@ -148,19 +143,19 @@ constructor() : JFrame(), Runnable, KeyListener {
 
     override fun keyPressed(e: KeyEvent) {
         if (e.keyCode == KeyEvent.VK_W) {
-            move = 0.05
+            move = 0.10
         }
 
         if (e.keyCode == KeyEvent.VK_S) {
-            move = -0.05
+            move = -0.10
         }
 
         if (e.keyCode == KeyEvent.VK_A) {
-            turn = 2.0
+            turn = 3.0
         }
 
         if (e.keyCode == KeyEvent.VK_D) {
-            turn = -2.0
+            turn = -3.0
         }
     }
 

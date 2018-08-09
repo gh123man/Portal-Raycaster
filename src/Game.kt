@@ -119,12 +119,8 @@ class Player(var position: Vector,
         val mapOffsetVector = Vector(0.0, 0.0)
         Portal.displaceVectorForRotation(mapOffsetVector, rotateRayDeg)
 
-        val thread = Thread.currentThread().getId()
-        println("PORTAL from direction: $direction)\t cam: $camPlane\t port: $portal\t th: $thread")
-
         direction.rotate(rotateRayDeg)
         camPlane.rotate(rotateRayDeg)
-        println("PORTAL to direction: $direction)\t cam: $camPlane\t port: $portal\t th: $thread")
         playerOffsetVector.rotate(rotateRayDeg)
 
         var newX = portal.mapX + playerOffsetVector.x + mapOffsetVector.x + direction.x * speed
