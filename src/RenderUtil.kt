@@ -92,6 +92,8 @@ class RenderUtil(private val buffer: IntArray,
 
     fun halfCircle(x: Double): Double {
         return Math.sqrt((-0.5).pow(2) - (x - 0.5).pow(2))
+        // Animated testing
+        //return Math.sqrt((-0.5).pow(2) - (x - 0.5).pow(2)) + 0.09 * Math.sin(x * ((System.currentTimeMillis() / 50) % 10))
     }
 
     fun wallColor(ray: Ray): Int {
