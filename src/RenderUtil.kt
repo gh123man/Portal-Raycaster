@@ -1,3 +1,4 @@
+import kotlin.math.pow
 
 data class PaintContext(val wallHeight: Int,
                         val start: Int,
@@ -27,17 +28,73 @@ class RenderUtil(private val buffer: IntArray,
         // DEBUG
         //paintLine(x, 0, height - 1, 0)
 
-        val lastRay = rays.last()
 
-        paintWall(lastRay, x)
-        paintFloors(rays, x)
+        if (rays.count() > 1) {
+            paintPortals(rays, x)
+        } else {
+            val lastRay = rays.last()
+            paintWall(lastRay, x)
+            paintFloor(lastRay, x, calcDrawStartEnd(lastRay).end, height - 1)
+        }
+
 
     }
 
     /**
      * Paints a single wall column with shading from the context of a ray
      */
-    fun paintWall(ray: Ray, x: Int) {
+    fun paintPortals(rays: List<Ray>, x: Int) {
+
+        // First paint the furthest wall
+        val lastRay = rays.last()
+        paintWall(lastRay, x)
+
+        // Reverse the list so start with the furthest away ray
+        val reversedRays = rays.reversed()
+        for (i in reversedRays.indices) {
+
+            val currentWallRay = reversedRays[i]
+            val nextWallRay = reversedRays.getOrElse(i + 1) {
+                reversedRays[i]
+            }
+
+            // Measure the distance between the bottom of the further away portal and the closer portal (next portal)
+            val (_, _, currentDrawEnd, _) = calcDrawStartEnd(currentWallRay) // further away wall
+
+            // Draw the last floor up to the player/camera
+            if (currentWallRay == nextWallRay) {
+                paintFloor(currentWallRay, x, currentDrawEnd, height - 1)
+            } else {
+                // this is a view through a portal. mask portal walls here
+                var (wallHeight, nextDrawStart, nextDrawEnd, _) = calcDrawStartEnd(nextWallRay) // closer wall to player
+                paintFloor(currentWallRay, x, currentDrawEnd, nextDrawEnd)
+                paintMask(nextWallRay, x)
+
+            }
+        }
+    }
+
+    fun paintMask(ray: Ray, x: Int) {
+
+        var (wallHeight, start, end, _) = calcDrawStartEnd(ray)
+
+        // Top Circle
+        var cirlceEndTop = (end - (halfCircle(ray.wallX) * wallHeight)).toInt() - (wallHeight / 2)
+        for (y in start until cirlceEndTop) {
+            buffer[y * width + x] = wallColor(ray)
+        }
+
+        var cirlceStartBottom = (start + (halfCircle(ray.wallX) * wallHeight)).toInt() + (wallHeight / 2)
+        for (y in cirlceStartBottom until end) {
+            buffer[y * width + x] = wallColor(ray)
+        }
+    }
+
+    fun halfCircle(x: Double): Double {
+        return Math.sqrt((-0.5).pow(2) - (x - 0.5).pow(2))
+    }
+
+    fun wallColor(ray: Ray): Int {
         var intensity = if (ray.side == 0) 255 else 150
 
         intensity -= (ray.distance * 2).toInt()
@@ -45,7 +102,7 @@ class RenderUtil(private val buffer: IntArray,
             intensity = 0
         }
 
-        val shade = if (ray.wallHitDirection == Direction.NORTH) {
+        return if (ray.wallHitDirection == Direction.NORTH) {
             Color.color(0, 0, intensity)
         } else if (ray.wallHitDirection == Direction.SOUTH) {
             Color.color(0, intensity, 0)
@@ -54,6 +111,13 @@ class RenderUtil(private val buffer: IntArray,
         } else {
             Color.color(0, intensity, intensity)
         }
+    }
+
+    /**
+     * Paints a single wall column with shading from the context of a ray
+     */
+    fun paintWall(ray: Ray, x: Int) {
+
 
         var (height, drawStart, drawEnd, clipped) = calcDrawStartEnd(ray)
 
@@ -68,7 +132,7 @@ class RenderUtil(private val buffer: IntArray,
 //            buffer[y * width + x] = Color.darken(shade, darkenAmount)
 //        }
         for (y in drawStart until drawEnd) {
-            buffer[y * width + x] = shade
+            buffer[y * width + x] = wallColor(ray)
         }
     }
 

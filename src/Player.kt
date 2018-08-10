@@ -1,4 +1,3 @@
-import kotlin.test.assertFails
 
 class Player(var position: Vector,
              var direction: Vector,
