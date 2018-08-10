@@ -28,7 +28,6 @@ class RenderUtil(private val buffer: IntArray,
         // DEBUG
         //paintLine(x, 0, height - 1, 0)
 
-
         if (rays.count() > 1) {
             paintPortals(rays, x)
         } else {
@@ -36,8 +35,6 @@ class RenderUtil(private val buffer: IntArray,
             paintWall(lastRay, x)
             paintFloor(lastRay, x, calcDrawStartEnd(lastRay).end, height - 1)
         }
-
-
     }
 
     /**
@@ -81,20 +78,24 @@ class RenderUtil(private val buffer: IntArray,
         // start and end are clamped to screen space height whne the wall is taller than the window
         // so we need to calculate the wall height in screenspace to prevent the circle from warping when
         // the player gets near the edge
-        val realWallHeight = end - start
+        val halfRealWallHeight = (end - start) / 2
+        val halfCircleYPos = (halfCircle(ray.wallX) * wallHeight).toInt()
 
-        // Top Circle
-        var circleEndTop = (end - (halfCircle(ray.wallX) * wallHeight)).toInt() - (realWallHeight / 2)
+        // Top half Circle
+        var circleEndTop = end - halfCircleYPos - halfRealWallHeight
         for (y in start until circleEndTop) {
             buffer[y * width + x] = wallColor(ray)
         }
 
-        var circleStartBottom = (start + (halfCircle(ray.wallX) * wallHeight)).toInt() + (realWallHeight / 2)
+        // Bottom half circle
+        var circleStartBottom = start + halfCircleYPos + halfRealWallHeight
         for (y in circleStartBottom until end) {
             buffer[y * width + x] = wallColor(ray)
         }
     }
 
+    // Useful online calculator to figure this stuff out
+    // https://www.desmos.com/calculator
     fun halfCircle(x: Double): Double {
         return Math.sqrt((-0.5).pow(2) - (x - 0.5).pow(2))
         // Animated testing
@@ -140,33 +141,6 @@ class RenderUtil(private val buffer: IntArray,
 //        }
         for (y in drawStart until drawEnd) {
             buffer[y * width + x] = wallColor(ray)
-        }
-    }
-
-
-    /**
-     * Paints floors and floors through portals
-     */
-    fun paintFloors(rays: List<Ray>, x: Int) {
-        val lastRay = rays.last()
-
-        // Reverse the list so start with the furthest away ray
-        val reversedRays = rays.reversed()
-        for (i in reversedRays.indices) {
-
-            val first = reversedRays[i]
-            val second = reversedRays.getOrElse(i + 1) {
-                lastRay
-            }
-
-            val (_, _, firstDrawEnd, _) = calcDrawStartEnd(first)
-            var (_, _, secondDrawEnd, _) = calcDrawStartEnd(second)
-
-            if (second == lastRay) {
-                secondDrawEnd = height - 1
-            }
-
-            paintFloor(first, x, firstDrawEnd, secondDrawEnd)
         }
     }
 
