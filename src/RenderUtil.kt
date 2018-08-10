@@ -84,13 +84,13 @@ class RenderUtil(private val buffer: IntArray,
         // Top half Circle
         var circleEndTop = end - halfCircleYPos - halfRealWallHeight
         for (y in start until circleEndTop) {
-            buffer[y * width + x] = wallColor(ray)
+            buffer[y * width + x] = wallSSAO(y, start, end, wallColor(ray))
         }
 
         // Bottom half circle
         var circleStartBottom = start + halfCircleYPos + halfRealWallHeight
         for (y in circleStartBottom until end) {
-            buffer[y * width + x] = wallColor(ray)
+            buffer[y * width + x] = wallSSAO(y, start, end, wallColor(ray))
         }
     }
 
@@ -100,6 +100,23 @@ class RenderUtil(private val buffer: IntArray,
         return Math.sqrt((-0.5).pow(2) - (x - 0.5).pow(2))
         // Animated testing
         //return Math.sqrt((-0.5).pow(2) - (x - 0.5).pow(2)) + 0.09 * Math.sin(x * ((System.currentTimeMillis() / 50) % 10))
+    }
+
+
+    // parabola used to calculate a fake SSAO effect
+    fun SSAOPolab(x: Double): Double {
+        return ((x - 0.5) / 0.5).pow(10)
+    }
+
+    // reduce the wall color against a parabolic function to darken the start and end
+    fun wallSSAO(y: Int, start: Int, end: Int, color: Int): Int {
+        // Convert start, end, and y into a value in the range 0 to 1
+        val yRange = 1 / ((end.toDouble() - start) / (y + 1 - start))
+
+        // Convert to int to reduce color
+        val amount = (SSAOPolab(yRange) * 30).toInt()
+
+        return Color.darken(color, amount)
     }
 
     fun wallColor(ray: Ray): Int {
@@ -125,22 +142,9 @@ class RenderUtil(private val buffer: IntArray,
      * Paints a single wall column with shading from the context of a ray
      */
     fun paintWall(ray: Ray, x: Int) {
-
-
-        var (height, drawStart, drawEnd, clipped) = calcDrawStartEnd(ray)
-
-        // Paint fake SSAO effect to top and bottom of wall
-//        val fractionOfWallHeight = 25
-//        val pxOffset = ((height / fractionOfWallHeight) - 1) + 1
-//
-//        var darkenAmount = 40
-//        var decreseRatio = (darkenAmount / pxOffset)
-//        for (y in drawStart until drawStart + pxOffset) {
-//            darkenAmount = if (clipped) 0 else darkenAmount - decreseRatio
-//            buffer[y * width + x] = Color.darken(shade, darkenAmount)
-//        }
+        var (_, drawStart, drawEnd, _) = calcDrawStartEnd(ray)
         for (y in drawStart until drawEnd) {
-            buffer[y * width + x] = wallColor(ray)
+            buffer[y * width + x] = wallSSAO(y, drawStart, drawEnd, wallColor(ray))
         }
     }
 
