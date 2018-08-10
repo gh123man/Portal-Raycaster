@@ -98,12 +98,13 @@ class Player(var position: Vector,
         camPlane.rotate(rotateRayDeg)
         playerOffsetVector.rotate(rotateRayDeg)
 
-        var newX = portal.mapX + playerOffsetVector.x + mapOffsetVector.x + direction.x * speed
-        var newY = portal.mapY + playerOffsetVector.y + mapOffsetVector.y + direction.y * speed
+        var newX = portal.mapX + playerOffsetVector.x + mapOffsetVector.x
+        var newY = portal.mapY + playerOffsetVector.y + mapOffsetVector.y
 
-        if (game.map[newX.toInt()][mapPosY] == 0) position.x = newX
-        if (game.map[mapPosX][newY.toInt()] == 0) position.y = newY
+        position.x = newX
+        position.y = newY
 
+        moveWithBoundsCheck(speed)
 
     }
 }
