@@ -78,14 +78,19 @@ class RenderUtil(private val buffer: IntArray,
 
         var (wallHeight, start, end, _) = calcDrawStartEnd(ray)
 
+        // start and end are clamped to screen space height whne the wall is taller than the window
+        // so we need to calculate the wall height in screenspace to prevent the circle from warping when
+        // the player gets near the edge
+        val realWallHeight = end - start
+
         // Top Circle
-        var cirlceEndTop = (end - (halfCircle(ray.wallX) * wallHeight)).toInt() - (wallHeight / 2)
-        for (y in start until cirlceEndTop) {
+        var circleEndTop = (end - (halfCircle(ray.wallX) * wallHeight)).toInt() - (realWallHeight / 2)
+        for (y in start until circleEndTop) {
             buffer[y * width + x] = wallColor(ray)
         }
 
-        var cirlceStartBottom = (start + (halfCircle(ray.wallX) * wallHeight)).toInt() + (wallHeight / 2)
-        for (y in cirlceStartBottom until end) {
+        var circleStartBottom = (start + (halfCircle(ray.wallX) * wallHeight)).toInt() + (realWallHeight / 2)
+        for (y in circleStartBottom until end) {
             buffer[y * width + x] = wallColor(ray)
         }
     }
