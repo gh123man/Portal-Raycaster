@@ -1,4 +1,5 @@
-import kotlin.math.pow
+import functions.FakeSSAOCurve
+import functions.HalfCircle
 
 data class PaintContext(val wallHeight: Int,
                         val start: Int,
@@ -8,6 +9,9 @@ data class PaintContext(val wallHeight: Int,
 class RenderUtil(private val buffer: IntArray,
                  val width: Int,
                  val height: Int) {
+
+    val halfCircle = HalfCircle()
+    var wallShadeCurve = FakeSSAOCurve()
 
     fun calcDrawStartEnd(ray: Ray): PaintContext {
         val wallHeight = (height / ray.distance).toInt()
@@ -79,7 +83,7 @@ class RenderUtil(private val buffer: IntArray,
         // so we need to calculate the wall height in screenspace to prevent the circle from warping when
         // the player gets near the edge
         val halfRealWallHeight = (end - start) / 2
-        val halfCircleYPos = (halfCircle(ray.wallX) * wallHeight).toInt()
+        val halfCircleYPos = (halfCircle.yForX(ray.wallX) * wallHeight).toInt()
 
         // Top half Circle
         var circleEndTop = end - halfCircleYPos - halfRealWallHeight
@@ -94,27 +98,13 @@ class RenderUtil(private val buffer: IntArray,
         }
     }
 
-    // Useful online calculator to figure this stuff out
-    // https://www.desmos.com/calculator
-    fun halfCircle(x: Double): Double {
-        return Math.sqrt((-0.5).pow(2) - (x - 0.5).pow(2))
-        // Animated testing
-        //return Math.sqrt((-0.5).pow(2) - (x - 0.5).pow(2)) + 0.09 * Math.sin(x * ((System.currentTimeMillis() / 50) % 10))
-    }
-
-
-    // parabola used to calculate a fake SSAO effect
-    fun SSAOPolab(x: Double): Double {
-        return ((x - 0.5) / 0.5).pow(10)
-    }
-
     // reduce the wall color against a parabolic function to darken the start and end
     fun wallSSAO(y: Int, start: Int, end: Int, color: Int): Int {
         // Convert start, end, and y into a value in the range 0 to 1
         val yRange = 1 / ((end.toDouble() - start) / (y + 1 - start))
 
         // Convert to int to reduce color
-        val amount = (SSAOPolab(yRange) * 30).toInt()
+        val amount = (wallShadeCurve.yForX(yRange) * 30).toInt()
 
         return Color.darken(color, amount)
     }

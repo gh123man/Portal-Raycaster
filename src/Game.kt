@@ -63,7 +63,8 @@ class Game(private val renderUtil: RenderUtil) {
     }
 
     fun tick(frame: Int) {
-        for (x in 0..renderUtil.width) {
+        val offset = if (frame % 2 == 0) 0 else 1
+        for (x in offset..renderUtil.width step 2) {
             val rays = castRay(x)
             renderUtil.paint(rays, x)
         }
