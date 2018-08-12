@@ -1,3 +1,5 @@
+import java.util.concurrent.Callable
+import java.util.concurrent.Executors
 import kotlin.collections.HashMap
 
 
@@ -23,6 +25,7 @@ class PortalManager {
 
 class Game(private val renderUtil: RenderUtil) {
 
+    private val threads = 16
     private val maxPortalDepth = 100
 
     val map = arrayOf(
@@ -48,7 +51,7 @@ class Game(private val renderUtil: RenderUtil) {
     val player = Player(
             Vector(1.5, 2.5),
             Vector(-1.0, 0.0),
-            Vector(0.0, 0.66),
+            Vector(0.0, (renderUtil.width.toDouble() / 2) / 1000),
             this
     )
 
@@ -62,12 +65,29 @@ class Game(private val renderUtil: RenderUtil) {
         portalManager.addPortal(0, 2, Direction.SOUTH, 3, 0, Direction.EAST)
     }
 
+    val executor = Executors.newFixedThreadPool(threads)
+    val tasks = arrayListOf<Callable<Unit>>()
+
     fun tick(frame: Int) {
-        val offset = if (frame % 2 == 0) 0 else 1
-        for (x in offset..renderUtil.width step 2) {
-            val rays = castRay(x)
-            renderUtil.paint(rays, x)
+
+        if (tasks.count() >= threads) {
+            executor.invokeAll(tasks)
+            return
         }
+
+        val chunk = renderUtil.width / threads
+        for (index in 0 until threads)
+            tasks.add(Callable {
+                val start = index * chunk
+                val end = start + chunk
+                for (x in start until end) {
+                    val rays = castRay(x)
+                    renderUtil.paint(rays, x)
+                }
+            })
+
+        executor.invokeAll(tasks)
+
     }
 
     private fun castRay(x: Int): List<Ray> {
