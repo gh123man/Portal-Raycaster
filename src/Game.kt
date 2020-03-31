@@ -51,7 +51,7 @@ class Game(private val renderUtil: RenderUtil) {
     val player = Player(
             Vector(1.5, 2.5),
             Vector(-1.0, 0.0),
-            Vector(0.0, (renderUtil.width.toDouble() / 2) / 1000),
+            Vector(0.0, (renderUtil.width.toDouble() / renderUtil.height.toDouble()) / 2),
             this
     )
 
