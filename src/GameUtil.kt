@@ -1,4 +1,3 @@
-
 enum class Direction {
     NORTH,
     SOUTH,
@@ -14,14 +13,22 @@ enum class Direction {
         )
 
         fun degreeRelationship(first: Direction, second: Direction): Double {
-            if (first == second) return 180.0
-            val firstVal = directionMap[first] ?: return 0.0
-            val secondVal = directionMap[second] ?: return 0.0
-            val diff = firstVal - secondVal
-            if (diff == -1 || diff == -3) {
-                return 90.0
-            } else if (diff == 1 || diff == 3) {
-                return -90.0
+            if (first === second) return 180.0
+            if (first === NORTH) {
+                if (second === SOUTH) return 0.0
+                return if (second === EAST) 90.0 else -90.0
+            }
+            if (first === EAST) {
+                if (second === WEST) return 0.0
+                return if (second === SOUTH) 90.0 else -90.0
+            }
+            if (first === SOUTH) {
+                if (second === NORTH) return 0.0
+                return if (second === WEST) 90.0 else -90.0
+            }
+            if (first === WEST) {
+                if (second === EAST) return 0.0
+                return if (second === NORTH) 90.0 else -90.0
             }
             return 0.0
         }

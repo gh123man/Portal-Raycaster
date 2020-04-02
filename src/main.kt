@@ -39,6 +39,9 @@ constructor() : JFrame(), Runnable, KeyListener {
     @Volatile var move = 0.0
     @Volatile var turn = 0.0
 
+    @Volatile var moveV = 0.0
+    @Volatile var turnV = 0.0
+
     init {
 
         addKeyListener(this)
@@ -85,8 +88,27 @@ constructor() : JFrame(), Runnable, KeyListener {
             start = System.nanoTime()
            // frame.graphics.clearRect(0, 0, width, height)
             tick ++
-            game.player.move(move)
-            game.player.rotate(turn)
+
+            turnV += turn
+            moveV += move
+            if (turnV > 3.0) {
+                turnV = 3.0
+            } else if (turnV < -3.0) {
+                turnV = -3.0
+            }
+
+            if (moveV > 0.10) {
+                moveV = 0.10
+            } else if (moveV < -0.10) {
+                moveV = -0.10
+            }
+
+            game.player.move(moveV)
+            game.player.rotate(turnV)
+
+            turnV *= 0.88
+            moveV *= 0.88
+
             game.tick(tick)
 
             drawFrame()
@@ -143,19 +165,19 @@ constructor() : JFrame(), Runnable, KeyListener {
 
     override fun keyPressed(e: KeyEvent) {
         if (e.keyCode == KeyEvent.VK_W) {
-            move = 0.10
+            move = 0.01
         }
 
         if (e.keyCode == KeyEvent.VK_S) {
-            move = -0.10
+            move = -0.01
         }
 
         if (e.keyCode == KeyEvent.VK_A) {
-            turn = 3.0
+            turn = 0.3
         }
 
         if (e.keyCode == KeyEvent.VK_D) {
-            turn = -3.0
+            turn = -0.3
         }
     }
 
