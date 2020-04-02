@@ -35,7 +35,7 @@ class Game(private val renderUtil: RenderUtil) {
             intArrayOf(1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1),
             intArrayOf(1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1),
             intArrayOf(1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1),
-            intArrayOf(1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1),
+            intArrayOf(1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1),
             intArrayOf(1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 2, 0, 1, 1, 1),
             intArrayOf(1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1),
             intArrayOf(1, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1),
@@ -49,7 +49,7 @@ class Game(private val renderUtil: RenderUtil) {
     )
 
     val player = Player(
-            Vector(1.5, 2.5),
+            Vector(2.5, 1.5),
             Vector(-1.0, 0.0),
             Vector(0.0, (renderUtil.width.toDouble() / renderUtil.height.toDouble()) / 2),
             this
@@ -58,11 +58,11 @@ class Game(private val renderUtil: RenderUtil) {
     val portalManager = PortalManager()
 
     init {
-        portalManager.addPortal(0, 13, Direction.SOUTH, 5, 13, Direction.NORTH)
-        portalManager.addPortal(0, 4, Direction.SOUTH, 5, 9, Direction.NORTH)
-        portalManager.addPortal(5, 0, Direction.EAST, 7, 0, Direction.EAST)
-        portalManager.addPortal(14, 5, Direction.NORTH, 14, 6, Direction.NORTH)
-        portalManager.addPortal(0, 2, Direction.SOUTH, 3, 0, Direction.EAST)
+        //portalManager.addPortal(0, 13, Direction.SOUTH, 5, 13, Direction.NORTH)
+        //portalManager.addPortal(0, 4, Direction.SOUTH, 5, 9, Direction.NORTH)
+        //portalManager.addPortal(5, 0, Direction.EAST, 7, 0, Direction.EAST)
+        //portalManager.addPortal(14, 5, Direction.NORTH, 14, 6, Direction.NORTH)
+        portalManager.addPortal(4, 4, Direction.NORTH, 2, 7, Direction.WEST)
     }
 
     val executor = Executors.newFixedThreadPool(threads)

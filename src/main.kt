@@ -1,3 +1,4 @@
+import java.awt.*
 import java.awt.Color
 import java.awt.Graphics
 import java.awt.image.BufferStrategy
@@ -81,6 +82,7 @@ constructor() : JFrame(), Runnable, KeyListener {
         var framePerTick = 1000 / 60
         var tick = 0
 
+        game.player.rotate(-90.0001)
         while (running) {
             start = System.nanoTime()
            // frame.graphics.clearRect(0, 0, width, height)
