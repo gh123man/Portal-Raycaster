@@ -22,19 +22,19 @@ When a ray is cast from the camera, it either terminates on a wall, or passes th
 <p align="center">
   <img src="photos/diagram0.png">
 </p>
-
-When a ray is cast from a portal, it is broke into 2 parts. 
+Above, you can see a ray cast from the player camera hitting a portal. This first ray is stored in the buffer and a new ray is cast from the exit portal. When a ray is cast from a portal, it is broke into 2 parts as seen below:
 
 <p align="center">
   <img src="photos/diagram1.png">
 </p>
-a: the ray cast from the portal exit to the next wall
 
-b: the complete length of the ray used for calculating the actual distance the wall is from the player. 
+**a**: the ray cast from the portal exit to the next wall
 
-The "a" component is used for collision detection. We would not want to detect walls between the false camera and the exit portal. 
+**b**: the complete length of the ray used for calculating the actual distance the wall is from the player. 
 
-The "b" component is used just for measuring the height of the wall slice we need to draw proportional to the length of the ray. 
+The **a** component is used for collision detection. We would not want to detect walls between the false camera and the exit portal. 
+
+The **b** component is used just for measuring the height of the wall slice we need to draw proportional to the length of the ray. 
 
 ## Rendering 
 
@@ -64,6 +64,9 @@ There are of course some cases where a max depth will be needed to prevent an in
   <img width=400 src="photos/game0.gif">
 </p>
 
+## Other Notes
+
+As stated at the top, this is early prototype code. I ended up rewriting this engine and building a full game out of it. If you enjoy this work or want to see more raycasting, please give [my game a try](https://blog.sb1.io/gateescape/)! Otherwise feel free to modify/experiment. 
 
 # How to use this repo
 
