@@ -36,6 +36,8 @@ The **a** component is used for collision detection. We would not want to detect
 
 The **b** component is used just for measuring the height of the wall slice we need to draw proportional to the length of the ray. 
 
+If you are sick of reading and want to see how this actually happens, [here is the code for all of the above](https://github.com/gh123man/Raycaster/blob/master/src/Game.kt#L111).
+
 ## Rendering 
 
 Once the ray buffer is built via either hitting a non-portal wall, or hitting the cast depth limit, the ray buffer is drawn by the renderer. The renderer reads the ray buffer back to front and starts drawing the furthest away walls first. 
@@ -52,6 +54,8 @@ These 3 steps are repeated for each ray that was cast until we reach the first r
   <img src="photos/renderOrder.gif">
 </p>
 
+The portal specific renderer code can be found [here](https://github.com/gh123man/Raycaster/blob/master/src/RenderUtil.kt#L47).
+
 ## Performance 
 
 It probably sounds like this would have terrible performance. What if rays pass through lots of portals and bounce all over the place? Or what if two portals are pointed at each other? 
@@ -63,6 +67,7 @@ There are of course some cases where a max depth will be needed to prevent an in
 <p align="center">
   <img width=400 src="photos/game0.gif">
 </p>
+
 
 ## Other Notes
 
