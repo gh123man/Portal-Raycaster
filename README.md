@@ -2,7 +2,7 @@
 # Raycasting Portals
 
 <p align="center">
-  <img width=400 src="photos/game1.gif">
+  <img width=600 src="photos/game1.gif">
 </p>
 
 This repo contains sample code from an early prototype of [Gate Escape](https://blog.sb1.io/gateescape/). There are likely bugs and other issues since the actual game was totally rewritten in c. Do not expect good performance as I learned early on that Kotlin and other GC'd languages are not good choices for software render engines. However this should run fine on most modern PCs and a good place to experiment! 
@@ -20,12 +20,12 @@ Aside from the obvious limitations, some things are actually much easier to do v
 When a ray is cast from the camera, it either terminates on a wall, or passes through a portal. When a ray hits a portal a second ray needs to be cast from the exit portal. So we will end up with 1 or more rays for each column of pixels on the screen. The rays are stored in a buffer ordered from first to last in casting order (starting at the camera)
 
 <p align="center">
-  <img src="photos/diagram0.png">
+  <img width=558 src="photos/diagram0.png">
 </p>
 Above, you can see a ray cast from the player camera hitting a portal. This first ray is stored in the buffer and a new ray is cast from the exit portal. When a ray is cast from a portal, it is broke into 2 parts as seen below:
 
 <p align="center">
-  <img src="photos/diagram1.png">
+  <img width=558 src="photos/diagram1.png">
 </p>
 
 **a**: the ray cast from the portal exit to the next wall
@@ -51,7 +51,7 @@ This GIF gives a rough idea of the order in which things are drawn.
 These 3 steps are repeated for each ray that was cast until we reach the first ray that was cast from the player camera.  
 
 <p align="center">
-  <img src="photos/renderOrder.gif">
+  <img width=600 src="photos/renderOrder.gif">
 </p>
 
 The portal specific renderer code can be found [here](https://github.com/gh123man/Raycaster/blob/master/src/RenderUtil.kt#L47).
@@ -65,7 +65,7 @@ It actually is not an issue at all. In this engine walls must be at the very lea
 There are of course some cases where a max depth will be needed to prevent an infinite casting loop. I use a depth of 100 since its more than enough to never see the end of a portal tunnel like this:
 
 <p align="center">
-  <img width=400 src="photos/game0.gif">
+  <img width=600 src="photos/game0.gif">
 </p>
 
 
