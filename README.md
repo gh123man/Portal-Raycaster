@@ -51,7 +51,7 @@ This GIF gives a rough idea of the order in which things are drawn.
 These 3 steps are repeated for each ray that was cast until we reach the first ray that was cast from the player camera.  
 
 <p align="center">
-  <img width=600 src="photos/renderOrder.gif">
+  <img width=750 src="photos/renderOrder.gif">
 </p>
 
 The portal specific renderer code can be found [here](https://github.com/gh123man/Raycaster/blob/master/src/RenderUtil.kt#L47).
