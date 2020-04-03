@@ -81,6 +81,3 @@ You can change key engine parameters starting [here](https://github.com/gh123man
 Change the number of threads to the number of cores in your machine for best performance. 
 
 The map can be modified and portals can be placed on any wall facing any cardinal direction. 
-
-
-## One last GIF because it's cool!
