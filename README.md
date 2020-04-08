@@ -60,7 +60,7 @@ The portal specific renderer code can be found [here](https://github.com/gh123ma
 
 It probably sounds like this would have terrible performance. What if rays pass through lots of portals and bounce all over the place? Or what if two portals are pointed at each other? 
 
-It actually is not an issue at all. In this engine walls must be at the very least 1 unit apart in order for portals to face each other which due to the spread of rays from the camera causes fewer rays to hit a given wall the further you are from it. So as the nested portal depth grows, the number of rays passing through that portal shrinks. Drawing is so much more expensive than casting, that every wall in the game could be a portal and you likely would not see any performance impact at all!
+It actually is not an issue at all. In this engine walls must be at the very least 1 unit apart in order for portals to face each other which due to the spread of rays from the camera causes fewer rays to hit a given wall the further you are from it. So as the nested portal depth grows, the number of rays passing through that portal shrinks. Drawing is so much more expensive than casting, you could have many portals in a scene with litte to no performance impact!
 
 There are of course some cases where a max depth will be needed to prevent an infinite casting loop. I use a depth of 100 since its more than enough to never see the end of a portal tunnel like this:
 
